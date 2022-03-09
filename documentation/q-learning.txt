@@ -1,20 +1,28 @@
-mock code for q-learning
+Mock code for q-learning
+
+# 0. Initialize
 
 ##train.py
 
-state_count = ...   # number of possible feature states, currentle 81
+state_count  = ...   # number of possible feature states, currently 81
 action_count = len(ACTIONS)   # 6
 
-setup-training()
+setup_training()
     # Initialize Q
     self.Q = np.zeros((state_count, action_count))
-    # self.policy = np.argmax(self.Q, axis = 1)   # right code?, deterministic?, multiple recommendations?  # does it matter here?
+    
+    self.training_data = []   # [[features, action_index, reward], ...]
+    self.state_occurances = np.zeros_like(self.Q)   # a counter for how often the individual game_states happened during training
 
 
 
-game_count = ...  # number of training games
+# 1. Train
+
 # loop over games handled in train mode
+game_count = ...  # number of training games
 
+
+# 1.a Play one round
 ##callbacks.py
 
 def epsilon_greedy (recommended_action, epsilon):
@@ -22,13 +30,75 @@ def epsilon_greedy (recommended_action, epsilon):
 
     return np.random.choice([recommended_action, random_action], p = [1 - epsilon, epsilon])
 
+def find_state (features):
+    # currently just assigns one state to each unique features
+    # currently, there are 3^4 = 81 different states
+    # every point in the feature space gets assigned one number
+
+    return = features[0]*3**3 + features[1]*3**2 + features[2]*3 + features[3]   
+
 act(game_state)
     features    = state_to_features(game_state)
-    state_index = features[0]*3**3 + features[1]*3**2 + features[2]*3 + features[3]
+    state_index = find_state(features)
     
     policy        = np.argmax(self.Q[state_index])
     policy_action = ACTION[policy]
     
     return epsilon_greedy(policy_action)
 
+
+# 1.a Collect training data
+##train.py
+
+game_events_occured():
+    features = state_to_features(game_state)
+    action   = np.find(ACTIONS, self_action) # find index of self_action
+    reward   = new_game_state['self'][1] - old_game_state['self'][1]   # just game reward for now, reward_from_events() better place for training reward calculations
+
+    self.training_data.append([features, action, reward])
+
+
+# 1.b Update Q-function
+##train.py
+
+from .callbacks import find_state
+
+# hyperparameters for Q-update
+alpha = ...
+gamma = ...
+
+end_of_round()
+    # no update to self.training_data here (game_events_occured() also gets called after the last action, doesn't it?)
+    
+    game_length = len(self.training_data)
+
+    features_new, action_new \
+                    = self.training_data[step][:2]
+    state_index_new = find_state(features_new)
+    self.state_occurances[state_index_new] \
+                    += 1
+    
+    for step in range(1, game_length):
+        # Preparation
+        state_index_old, action_old \
+                        = state_index_new, action_new
+        features_new, action_new, reward_new \
+                        = self.training_data[step]
+        state_index_new = find_state(features_new)
+        self.state_occurances[state_index_new] += 1
+
+        Q_state_old  = self.Q[state_index_old][action_old]
+        Q_state_new  = self.Q[state_index_new][action_new]
+        V_state_new  = np.max(Q_state_new)   # implemented Q-learning instead of SARSA
+        N_Sa         = self.state_occurances[state_index_new]
+        
+        # Q-Update
+        self.Q[state_index_old][action_old] = Q_state_old + alpha * (reward_new + gamma / N_Sa * V_state_new - Q_state_old)
+
+
+# 2. Update policy 
+
+    # where to place it?
+    self.policy = np.argmax(self.Q, axis = 1)   # right code?, deterministic?, multiple recommendations?  # does it matter here?    
+        
 
