@@ -1,0 +1,34 @@
+mock code for q-learning
+
+##train.py
+
+state_count = ...   # number of possible feature states, currentle 81
+action_count = len(ACTIONS)   # 6
+
+setup-training()
+    # Initialize Q
+    self.Q = np.zeros((state_count, action_count))
+    # self.policy = np.argmax(self.Q, axis = 1)   # right code?, deterministic?, multiple recommendations?  # does it matter here?
+
+
+
+game_count = ...  # number of training games
+# loop over games handled in train mode
+
+##callbacks.py
+
+def epsilon_greedy (recommended_action, epsilon):
+    random_action = np.random.choice(ACTIONS)
+
+    return np.random.choice([recommended_action, random_action], p = [1 - epsilon, epsilon])
+
+act(game_state)
+    features    = state_to_features(game_state)
+    state_index = features[0]*3**3 + features[1]*3**2 + features[2]*3 + features[3]
+    
+    policy        = np.argmax(self.Q[state_index])
+    policy_action = ACTION[policy]
+    
+    return epsilon_greedy(policy_action)
+
+
