@@ -62,7 +62,7 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
         reward = new_game_state['self'][1] - old_game_state['self'][1]   # just game reward for now, reward_from_events() better place for training reward calculations
     else:
         reward = 0
-    print(f"reward {reward}")
+    #print(f"reward {reward}")
     
     self.training_data.append([features, action, reward])
 

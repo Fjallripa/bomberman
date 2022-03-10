@@ -53,7 +53,7 @@ def act(self, game_state: dict) -> str:
     :return: The action to take as a string.
     """
     
-    print(f"act() state: step {game_state['step']}")
+    #print(f"act() state: step {game_state['step']}")
 
     self.logger.debug("Querying model for action.")
     features    = state_to_features(game_state)
@@ -64,7 +64,7 @@ def act(self, game_state: dict) -> str:
         policy_action = ACTIONS[policy]
         action        = epsilon_greedy(policy_action, epsilon)
         
-        print(f"act() action: {action}")
+        #print(f"act() action: {action}")
         return action
         
     else:
