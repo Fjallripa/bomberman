@@ -68,23 +68,18 @@ alpha = ...
 gamma = ...
 
 end_of_round()
-    # no update to self.training_data here (game_events_occured() also gets called after the last action, doesn't it?)
+        # no update to self.training_data here (game_events_occured() also gets called after the last action, doesn't it?)
     
     game_length = len(self.training_data)
 
-    features_new, action_new \
-                    = self.training_data[step][:2]
-    state_index_new = find_state(features_new)
-    self.state_occurances[state_index_new] \
-                    += 1
+    features_old, action_old, reward_new    = self.training_data[0]
+    state_index_old                         = find_state(features_old)
+    self.state_occurances[state_index_new] += 1
     
     for step in range(1, game_length):
         # Preparation
-        state_index_old, action_old \
-                        = state_index_new, action_new
-        features_new, action_new, reward_new \
-                        = self.training_data[step]
-        state_index_new = find_state(features_new)
+        features_new, action_new, reward_next   = self.training_data[step]
+        state_index_new                         = find_state(features_new)
         self.state_occurances[state_index_new] += 1
 
         Q_state_old  = self.Q[state_index_old][action_old]
@@ -95,11 +90,16 @@ end_of_round()
         # Q-Update
         self.Q[state_index_old][action_old] = Q_state_old + alpha * (reward_new + gamma / N_Sa * V_state_new - Q_state_old)
 
+        # new state becomes old state
+        state_index_old = state_index_new
+        action_old      = action_new
+        reward_new      = reward_next
+        
+
     # Save updated Q-function as new model
     self.model = self.Q
-    with open("model_vq10ch1.pt", "wb") as file:   # file name "model_vq10ch1" stands for "algo: vanilla q-learning version 1.0, scenario: coin-heaven one-player (agent is only player)"
+    with open(model_file, "wb") as file:
         pickle.dump(self.model, file)
-
 
 
 # 2. Test
