@@ -70,10 +70,25 @@ def state_to_features(game_state: dict) -> np.array:
     if game_state is None:
         return None
 
-    # For example, you could construct several channels of equal shape, ...
-    channels = []
-    channels.append(...)
-    # concatenate them as a feature tensor (they must have the same shape), ...
-    stacked_channels = np.stack(channels)
-    # and return them as a vector
-    return stacked_channels.reshape(-1)
+    ### design features for Task 1 ###
+    """
+    np.array where each component corresponds to on neighbour field
+    = 0 if wall or crate
+    = 1 if free
+    = 2 if free and (one) nearest field to nearest coin
+    """
+    X = np.zeros(4) # hand-crafted feature vector
+    
+    free_space = game_state['field'] == 0 # Boolean numpy array. True for free tiles and False for Crates & Walls
+    agent_x, agent_y = game_state['self'][3] # Agent position as coordinates 
+    coin_direction = look_for_targets(free_space, (agent_x, agent_y), game_state['coins']) # neighbouring field closest to closest coin
+
+    neighbours = [(agent_x + 1, agent_y), (agent_x - 1, agent_y), (agent_x, agent_y + 1), (agent_x, agent_y - 1)]
+    
+    for j, neighbour in enumerate(neighbours):
+        if neighbour == coin_direction: 
+            X[j] = 2
+        elif free_space[neighbour[0], neighbour[1]]:
+            X[j] = 1
+    
+    return(X) 
