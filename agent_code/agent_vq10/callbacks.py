@@ -1,4 +1,3 @@
-from msilib.schema import Billboard
 import os
 import pickle
 import random
@@ -54,6 +53,8 @@ def act(self, game_state: dict) -> str:
     :return: The action to take as a string.
     """
     
+    print(f"act() state: step {game_state['step']}")
+
     self.logger.debug("Querying model for action.")
     features    = state_to_features(game_state)
     state_index = find_state(features)
@@ -61,9 +62,11 @@ def act(self, game_state: dict) -> str:
     if self.train:
         policy        = np.argmax(self.Q[state_index])
         policy_action = ACTIONS[policy]
+        action        = epsilon_greedy(policy_action, epsilon)
         
-        return epsilon_greedy(policy_action, epsilon)
-    
+        print(f"act() action: {action}")
+        return action
+        
     else:
         policy        = np.argmax(self.model[state_index])
         policy_action = ACTIONS[policy]
@@ -150,7 +153,7 @@ def state_to_features(game_state: dict) -> np.array:
     = 1 if free
     = 2 if free and (one) nearest field to nearest coin
     """
-    X = np.zeros(4) # hand-crafted feature vector
+    X = np.zeros(4, dtype = int) # hand-crafted feature vector
     
     free_space = game_state['field'] == 0 # Boolean numpy array. True for free tiles and False for Crates & Walls
     agent_x, agent_y = game_state['self'][3] # Agent position as coordinates 
@@ -179,5 +182,8 @@ def find_state (features):
     # currently, there are 3^4 = 81 different states
     # every point in the feature space gets assigned one number
 
-    return features[0]*3**3 + features[1]*3**2 + features[2]*3 + features[3]   
+    #print(features)
+    state_index = features[0]*3**3 + features[1]*3**2 + features[2]*3 + features[3]
+    #print(state_index)
+    return state_index  
 

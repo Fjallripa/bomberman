@@ -56,11 +56,33 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
 
     self.logger.debug(f'Encountered game event(s) {", ".join(map(repr, events))} in step {new_game_state["step"]}')
 
-    features = state_to_features(old_game_state)
-    action   = np.find(ACTIONS, self_action)   # find index of self_action
+    features   = state_to_features(new_game_state)
+    action     = ACTIONS.index(self_action)   # find index of self_action
+    if new_game_state['step'] > 1:
+        reward = new_game_state['self'][1] - old_game_state['self'][1]   # just game reward for now, reward_from_events() better place for training reward calculations
+    else:
+        reward = 0
+    print(f"reward {reward}")
+    
+    self.training_data.append([features, action, reward])
+
+
+    '''
+    if new_game_state['step'] == 1:
+        print(self_action)
+        return
+    
+    print(old_game_state['step'])
+    print(self_action)
+    print(new_game_state['step'])
+    print("")
+    
+    features = state_to_features(new_game_state)
+    action   = ACTIONS.index(self_action)   # find index of self_action
     reward   = new_game_state['self'][1] - old_game_state['self'][1]   # just game reward for now, reward_from_events() better place for training reward calculations
 
     self.training_data.append([features, action, reward])
+    '''
 
 
 
@@ -82,7 +104,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     
     # Update training data of last round
     features = state_to_features(last_game_state)
-    action   = np.find(ACTIONS, last_action)   # find index of self_action
+    action   = ACTIONS.index(last_action)   # find index of self_action
     reward   = 0   # reward of state-after-last-game-state not needed.
 
     self.training_data.append([features, action, reward])
@@ -92,14 +114,16 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     game_length = len(self.training_data)
 
     # step 0
-    features_old, action_old, reward_new    = self.training_data[0]   # action_old = a_t
-    state_index_old                         = find_state(features_old)
+    features_old, action_old, _ = self.training_data[0]
+    state_index_old             = find_state(features_old)
+    #features_old, action_old, reward_new    = self.training_data[0]   # action_old = a_t
     #self.state_occurances[state_index_new] += 1
     
     for step in range(1, game_length):
         # Preparation
-        features_new, action_new, reward_next   = self.training_data[step]
-        state_index_new                         = find_state(features_new)
+        features_new, action_new, reward_new = self.training_data[step]
+        state_index_new                      = find_state(features_new)
+        #features_new, action_new, reward_next   = self.training_data[step]
         #self.state_occurances[state_index_new] += 1
 
         Q_state_old  = self.Q[state_index_old][action_old]
@@ -112,7 +136,8 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         # new state becomes old state
         state_index_old = state_index_new
         action_old      = action_new
-        reward_new      = reward_next
+        #reward_new      = reward_next
+        
         
 
     # Save updated Q-function as new model
