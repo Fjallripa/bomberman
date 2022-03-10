@@ -95,10 +95,25 @@ end_of_round()
         # Q-Update
         self.Q[state_index_old][action_old] = Q_state_old + alpha * (reward_new + gamma / N_Sa * V_state_new - Q_state_old)
 
+    # Save updated Q-function as new model
+    self.model = self.Q
+    with open("model_vq10ch1.pt", "wb") as file:   # file name "model_vq10ch1" stands for "algo: vanilla q-learning version 1.0, scenario: coin-heaven one-player (agent is only player)"
+        pickle.dump(self.model, file)
 
-# 2. Update policy 
 
-    # where to place it?
-    self.policy = np.argmax(self.Q, axis = 1)   # right code?, deterministic?, multiple recommendations?  # does it matter here?    
-        
 
+# 2. Test
+##callbacks.py
+
+setup()
+    with open("my-saved-model.pt", "rb") as file:
+        self.model = pickle.load(file)
+
+act()
+    features    = state_to_features(game_state)
+    state_index = find_state(features)
+    
+    policy        = np.argmax(self.model[state_index])
+    policy_action = ACTION[policy]
+    
+    return policy_action
