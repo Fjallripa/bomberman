@@ -7,7 +7,7 @@ from .callbacks import state_to_features, find_state
 from .callbacks import ACTIONS, model_file
 
 
-# constants 
+# Constants 
 state_count  = 81   # number of possible feature states, currently 81
 action_count = len(ACTIONS)   # 6
 
@@ -15,7 +15,13 @@ action_count = len(ACTIONS)   # 6
 alpha = 1   # initially set to 1
 gamma = 1   # initially set to 1
 
+# Training analysis
+Q_file = lambda x: f"logs/Q_data/Q{x}.npy"
 
+
+
+
+# Main functions
 
 def setup_training(self):
     """
@@ -33,7 +39,7 @@ def setup_training(self):
     
     self.training_data = []   # [[features, action_index, reward], ...]
     #self.state_occurances = np.zeros_like(self.Q)   # a counter for how often the individual game_states happened during training
-
+    
 
 
 def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_state: dict, events: List[str]):
@@ -62,7 +68,6 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
         reward = new_game_state['self'][1] - old_game_state['self'][1]   # just game reward for now, reward_from_events() better place for training reward calculations
     else:
         reward = 0
-    #print(f"reward {reward}")
     
     self.training_data.append([features, action, reward])
 
@@ -144,6 +149,11 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     self.model = self.Q
     with open(model_file, "wb") as file:
         pickle.dump(self.model, file)
+
+    # Save analysis data
+    round = last_game_state['round']
+    with open(Q_file(round), "wb") as file:
+        np.save(file, self.Q)
 
 
 

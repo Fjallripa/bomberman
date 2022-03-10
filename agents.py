@@ -223,7 +223,7 @@ class AgentRunner:
         self.wlogger.setLevel(s.LOG_AGENT_WRAPPER)
         self.fake_self.logger = logging.getLogger(self.agent_name + '_code')
         self.fake_self.logger.setLevel(s.LOG_AGENT_CODE)
-        log_dir = f'agent_code/{self.code_name}/logs/'
+        log_dir = f'bomberman_rl/agent_code/{self.code_name}/logs/'
         if not os.path.exists(log_dir): os.makedirs(log_dir)
         handler = logging.FileHandler(f'{log_dir}{self.agent_name}.log', mode="w")
         handler.setLevel(logging.DEBUG)
