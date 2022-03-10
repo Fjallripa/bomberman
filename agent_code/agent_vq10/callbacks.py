@@ -7,6 +7,10 @@ import numpy as np
 
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 
+model_file = "model_vq10ch1.pt"
+epsilon = 0.5   # constant for now, could be a function depending on training round later
+
+
 
 def setup(self):
     """
@@ -22,14 +26,21 @@ def setup(self):
 
     :param self: This object is passed to all callbacks and you can set arbitrary values.
     """
-    if self.train or not os.path.isfile("my-saved-model.pt"):
-        self.logger.info("Setting up model from scratch.")
-        weights = np.random.rand(len(ACTIONS))
-        self.model = weights / weights.sum()
+
+    
+
+    if self.train:
+        # Setup done in setup_training()
+        pass
+
+    elif not os.path.isfile(model_file):
+        print(f"\nError: the model file {model_file} couldn't be found!\n")
+
     else:
-        self.logger.info("Loading model from saved state.")
-        with open("my-saved-model.pt", "rb") as file:
+        self.logger.info(f"Loading model {model_file} from saved state.")
+        with open(model_file, "rb") as file:
             self.model = pickle.load(file)
+
 
 
 def act(self, game_state: dict) -> str:
@@ -41,16 +52,26 @@ def act(self, game_state: dict) -> str:
     :param game_state: The dictionary that describes everything on the board.
     :return: The action to take as a string.
     """
-    # todo Exploration vs exploitation
-    random_prob = .1
-    if self.train and random.random() < random_prob:
-        self.logger.debug("Choosing action purely at random.")
-        # 80%: walk in any direction. 10% wait. 10% bomb.
-        return np.random.choice(ACTIONS, p=[.2, .2, .2, .2, .1, .1])
-
+    
     self.logger.debug("Querying model for action.")
-    return np.random.choice(ACTIONS, p=self.model)
+    features    = state_to_features(game_state)
+    state_index = find_state(features)
 
+    if self.train:
+        policy        = np.argmax(self.Q[state_index])
+        policy_action = ACTIONS[policy]
+        
+        return epsilon_greedy(policy_action, epsilon)
+    
+    else:
+        policy        = np.argmax(self.model[state_index])
+        policy_action = ACTIONS[policy]
+        
+        return policy_action
+
+
+
+# Support functions for act()
 
 def look_for_targets(free_space, start, targets, logger=None):
     """Find direction of closest target that can be reached via free tiles.
@@ -88,7 +109,7 @@ def look_for_targets(free_space, start, targets, logger=None):
         # Add unexplored free neighboring tiles to the queue in a random order
         x, y = current
         neighbors = [(x, y) for (x, y) in [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)] if free_space[x, y]]
-        shuffle(neighbors)
+        np.shuffle(neighbors)
         for neighbor in neighbors:
             if neighbor not in parent_dict:
                 frontier.append(neighbor)
@@ -100,6 +121,7 @@ def look_for_targets(free_space, start, targets, logger=None):
     while True:
         if parent_dict[current] == start: return current
         current = parent_dict[current]
+
 
 
 def state_to_features(game_state: dict) -> np.array:
@@ -142,3 +164,18 @@ def state_to_features(game_state: dict) -> np.array:
             X[j] = 1
     
     return(X) 
+    
+
+
+def epsilon_greedy (recommended_action, epsilon):
+    random_action = np.random.choice(ACTIONS)
+
+    return np.random.choice([recommended_action, random_action], p = [1 - epsilon, epsilon])
+
+
+def find_state (features):
+    # currently just assigns one state to each unique features
+    # currently, there are 3^4 = 81 different states
+    # every point in the feature space gets assigned one number
+
+    return features[0]*3**3 + features[1]*3**2 + features[2]*3 + features[3]   

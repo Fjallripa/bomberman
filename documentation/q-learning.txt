@@ -4,12 +4,12 @@ Mock code for q-learning
 
 ##train.py
 
-state_count  = ...   # number of possible feature states, currently 81
+state_count  = 81   # number of possible feature states, currently 81
 action_count = len(ACTIONS)   # 6
 
 setup_training()
     # Initialize Q
-    self.Q = np.zeros((state_count, action_count))
+    self.Q = np.zeros((state_count, action_count))   # initial guess for Q, for now just zeros
     
     self.training_data = []   # [[features, action_index, reward], ...]
     self.state_occurances = np.zeros_like(self.Q)   # a counter for how often the individual game_states happened during training
@@ -35,14 +35,14 @@ def find_state (features):
     # currently, there are 3^4 = 81 different states
     # every point in the feature space gets assigned one number
 
-    return = features[0]*3**3 + features[1]*3**2 + features[2]*3 + features[3]   
+    return features[0]*3**3 + features[1]*3**2 + features[2]*3 + features[3]   
 
 act(game_state)
     features    = state_to_features(game_state)
     state_index = find_state(features)
     
     policy        = np.argmax(self.Q[state_index])
-    policy_action = ACTION[policy]
+    policy_action = ACTIONS[policy]
     
     return epsilon_greedy(policy_action)
 
@@ -114,6 +114,6 @@ act()
     state_index = find_state(features)
     
     policy        = np.argmax(self.model[state_index])
-    policy_action = ACTION[policy]
+    policy_action = ACTIONS[policy]
     
     return policy_action
