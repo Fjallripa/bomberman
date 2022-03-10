@@ -32,7 +32,7 @@ def setup_training(self):
     self.Q = np.zeros((state_count, action_count))   # initial guess for Q, for now just zeros
     
     self.training_data = []   # [[features, action_index, reward], ...]
-    self.state_occurances = np.zeros_like(self.Q)   # a counter for how often the individual game_states happened during training
+    #self.state_occurances = np.zeros_like(self.Q)   # a counter for how often the individual game_states happened during training
 
 
 
@@ -79,27 +79,35 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     """
 
     self.logger.debug(f'Encountered event(s) {", ".join(map(repr, events))} in final step')
-    # no update to self.training_data here (game_events_occured() also gets called after the last action, doesn't it?)
     
+    # Update training data of last round
+    features = state_to_features(last_game_state)
+    action   = np.find(ACTIONS, last_action)   # find index of self_action
+    reward   = 0   # reward of state-after-last-game-state not needed.
+
+    self.training_data.append([features, action, reward])
+
+
+
     game_length = len(self.training_data)
 
-    features_old, action_old, reward_new    = self.training_data[0]
+    # step 0
+    features_old, action_old, reward_new    = self.training_data[0]   # action_old = a_t
     state_index_old                         = find_state(features_old)
-    self.state_occurances[state_index_new] += 1
+    #self.state_occurances[state_index_new] += 1
     
     for step in range(1, game_length):
         # Preparation
         features_new, action_new, reward_next   = self.training_data[step]
         state_index_new                         = find_state(features_new)
-        self.state_occurances[state_index_new] += 1
+        #self.state_occurances[state_index_new] += 1
 
         Q_state_old  = self.Q[state_index_old][action_old]
-        Q_state_new  = self.Q[state_index_new][action_new]
-        V_state_new  = np.max(Q_state_new)   # implemented Q-learning instead of SARSA
-        N_Sa         = self.state_occurances[state_index_new]
+        V_state_new  = np.max(self.Q[state_index_new])   # implemented Q-learning instead of SARSA
+        #N_Sa        = self.state_occurances[state_index_new]
         
         # Q-Update
-        self.Q[state_index_old][action_old] = Q_state_old + alpha * (reward_new + gamma / N_Sa * V_state_new - Q_state_old)
+        self.Q[state_index_old][action_old] = Q_state_old + alpha * (reward_new + gamma * V_state_new - Q_state_old)  # also try alpha / N_Sa
 
         # new state becomes old state
         state_index_old = state_index_new
@@ -111,7 +119,6 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     self.model = self.Q
     with open(model_file, "wb") as file:
         pickle.dump(self.model, file)
-
 
 
 

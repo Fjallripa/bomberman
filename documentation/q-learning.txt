@@ -64,8 +64,8 @@ game_events_occured():
 from .callbacks import find_state
 
 # hyperparameters for Q-update
-alpha = ...
-gamma = ...
+alpha = 1
+gamma = 1
 
 end_of_round()
         # no update to self.training_data here (game_events_occured() also gets called after the last action, doesn't it?)
@@ -88,7 +88,7 @@ end_of_round()
         N_Sa         = self.state_occurances[state_index_new]
         
         # Q-Update
-        self.Q[state_index_old][action_old] = Q_state_old + alpha * (reward_new + gamma / N_Sa * V_state_new - Q_state_old)
+        self.Q[state_index_old][action_old] = Q_state_old + alpha / N_Sa  * (reward_new + gamma* V_state_new - Q_state_old)
 
         # new state becomes old state
         state_index_old = state_index_new
@@ -117,3 +117,28 @@ act()
     policy_action = ACTIONS[policy]
     
     return policy_action
+
+
+
+
+
+
+
+a propos find_state():
+
+    '''
+    (x, y)  3x3 Bild
+    Q.shape = (9, 6)
+    Q[x*3 + y]
+
+    feature -> Q_index
+    0 3 6
+    1 4 7
+    2 5 8
+
+    Q = 
+    [[state 0 actions],
+     [state 1 actions],
+     ...
+    ]
+    '''

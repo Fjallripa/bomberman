@@ -10,3 +10,4 @@
      * epsilon = 0.5
      * alpha   = 1
      * gamma   = 1
+   * capped epsilon_greedy random action to only "walk" (prevents frequent suicides)

@@ -1,3 +1,4 @@
+from msilib.schema import Billboard
 import os
 import pickle
 import random
@@ -164,11 +165,11 @@ def state_to_features(game_state: dict) -> np.array:
             X[j] = 1
     
     return(X) 
-    
+
 
 
 def epsilon_greedy (recommended_action, epsilon):
-    random_action = np.random.choice(ACTIONS)
+    random_action = np.random.choice(ACTIONS[:4])  # don't kill yourself, maybe only compute if needed?
 
     return np.random.choice([recommended_action, random_action], p = [1 - epsilon, epsilon])
 
@@ -179,3 +180,4 @@ def find_state (features):
     # every point in the feature space gets assigned one number
 
     return features[0]*3**3 + features[1]*3**2 + features[2]*3 + features[3]   
+
