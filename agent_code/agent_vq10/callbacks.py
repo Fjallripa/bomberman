@@ -60,7 +60,7 @@ def act(self, game_state: dict) -> str:
     state_index = find_state(features)
 
     if self.train:
-        policy        = np.argmax(self.Q[state_index])
+        policy        = random_argmax_1d(self.Q[state_index])
         policy_action = ACTIONS[policy]
         action        = epsilon_greedy(policy_action, epsilon)
         
@@ -68,7 +68,7 @@ def act(self, game_state: dict) -> str:
         return action
         
     else:
-        policy        = np.argmax(self.model[state_index])
+        policy        = random_argmax_1d(self.model[state_index])
         policy_action = ACTIONS[policy]
         
         return policy_action
@@ -127,7 +127,6 @@ def look_for_targets(free_space, start, targets, logger=None):
         current = parent_dict[current]
 
 
-
 def state_to_features(game_state: dict) -> np.array:
     """
     *This is not a required function, but an idea to structure your code.*
@@ -170,7 +169,6 @@ def state_to_features(game_state: dict) -> np.array:
     return(X) 
 
 
-
 def epsilon_greedy (recommended_action, epsilon):
     random_action = np.random.choice(ACTIONS[:4])  # don't kill yourself, maybe only compute if needed?
 
@@ -187,3 +185,34 @@ def find_state (features):
     #print(state_index)
     return state_index  
 
+
+def random_argmax_1d(a):
+    """
+    Improved np.argmax(a, axis = None):
+    Unbiased (i.e. random) selection if mutliple maximal elements.
+
+    Parameters
+    ----------
+    a : np.array
+        1d Array to find indice(s) of maximal value(s).
+
+    Returns
+    -------
+    np.argmax(a, axis = None) if unique maximal element
+    index of one randomly selected maximal element otherwise
+
+    """
+    
+    maximum = np.amax(a) 
+    smaller_than_max = maximum - 1
+
+    if np.count_nonzero(a == maximum) == 1: 
+        return(np.argmax(a))
+    else:
+        argmaxima = []
+        b = a
+        while(np.amax(b) == maximum):
+            i = np.argmax(b)
+            argmaxima.append(i)
+            b[i] = smaller_than_max
+        return(np.random.choice(np.array(argmaxima)))
