@@ -114,5 +114,5 @@ results/
 .DS_Store
 
 # Ignore big analysis data
-*Q*.npy
-agent_code/agent_vq11/model_vq11ch1.pt
+**/logs/Q_data/Q*.npy
+**/model_*.pt
