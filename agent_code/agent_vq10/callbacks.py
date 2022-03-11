@@ -212,7 +212,7 @@ def state_to_features(game_state: dict) -> np.array:
 def epsilon_greedy (recommended_action, epsilon):
     random_action = lambda x: np.random.choice(ACTIONS[:4])  # don't kill yourself, maybe only compute if needed?
 
-    return np.random.choice([recommended_action, random_action()], p = [1 - epsilon, epsilon])
+    return np.random.choice([recommended_action, random_action(0)], p = [1 - epsilon, epsilon])
 
 
 def find_state (features):
