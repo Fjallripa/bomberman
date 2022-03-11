@@ -114,4 +114,4 @@ results/
 .DS_Store
 
 # Ignore big analysis data
-*/Q_data/*
+*Q*.npy
