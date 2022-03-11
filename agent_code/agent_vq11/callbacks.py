@@ -190,7 +190,7 @@ def look_for_targets(free_space, start, targets, logger=None):
 
 def epsilon_greedy (recommended_action, epsilon):
     
-    random_action = lambda x: np.random.choice(ACTIONS[:4])  # don't kill yourself
+    random_action = lambda x: np.random.choice(ACTIONS[:4])  # don't wait or kill yourself
 
     return np.random.choice([recommended_action, random_action()], p = [1 - epsilon, epsilon])
 

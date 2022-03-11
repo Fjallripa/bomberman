@@ -13,7 +13,8 @@ from .callbacks import ACTIONS, model_file
 
 # Constants 
 state_count  = 81   # number of possible feature states, currently 81
-action_count = len(ACTIONS)   # 6
+action_count = 4 # was previously & should be in general = len(ACTIONS) = 6; changed for task 1
+
 
 # Hyperparameters for Q-update
 alpha = 1   # initially set to 1
