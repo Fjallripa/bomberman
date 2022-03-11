@@ -115,3 +115,4 @@ results/
 
 # Ignore big analysis data
 *Q*.npy
+agent_code/agent_vq11/model_vq11ch1.pt
