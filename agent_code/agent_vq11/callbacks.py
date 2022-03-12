@@ -62,9 +62,8 @@ def act(self, game_state: dict) -> str:
     """
     
     
-    self.timer_act.start()
-    self.logger.debug("Querying model for action.")
-
+    if self.train:  self.timer_act.start()
+    
     features    = state_to_features(game_state)
     state_index = find_state(features)
 
@@ -77,9 +76,11 @@ def act(self, game_state: dict) -> str:
         action = ACTIONS[policy]
 
     # Timing this function
-    act_time = self.timer_act.stop()
-    self.act_times.append(act_time)
+    if self.train: 
+        act_time = self.timer_act.stop()
+        self.act_times.append(act_time)
 
+    self.logger.debug(f"Querying model for action {action}")
     return action 
 
 
