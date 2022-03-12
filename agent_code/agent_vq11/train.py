@@ -5,10 +5,11 @@
 import pickle
 import numpy as np
 from typing import List
+from codetiming import Timer
 
 import events as e
 from .callbacks import state_to_features, find_state
-from .callbacks import ACTIONS, model_file
+from .callbacks import ACTIONS, model_name
 
 
 # Constants 
@@ -21,7 +22,8 @@ alpha = 1   # initially set to 1
 gamma = 1   # initially set to 1
 
 # Training analysis
-Q_file = lambda x: f"logs/Q_data/Q{x}.npy"
+Q_file      = lambda x: f"logs/Q_data/Q{x}.npy"
+timing_file = f"logs/timing/time_{model_name}.csv"
 
 
 
@@ -44,7 +46,30 @@ def setup_training(self):
     self.logger.debug("Starting training by initializing Q.")
     self.Q = np.zeros((state_count, action_count))   # initial guess for Q, for now just zeros
     
-    self.training_data = []   # [[features, action_index, reward], ...]    
+    self.training_data = []   # [[features, action_index, reward], ...]  
+
+
+    # Time training and log it
+    timing_header = "\t".join(['round', 'step_count', 
+                               'round_time', 'avg_step_time', 
+                               'avg_act_time', 'avg_geo_time',
+                               'eor_time'])
+    with open(timing_file, 'w') as file:
+        np.savetxt(file, np.array([]), header = timing_header, comments = "")
+
+    self.step_times = []
+    self.act_times  = []
+    self.geo_times  = []
+    
+    self.timer_round = Timer(logger = None)
+    self.timer_step  = Timer(logger = None)
+    self.timer_act   = Timer(logger = None)
+    self.timer_geo   = Timer(logger = None)
+    self.timer_eor   = Timer(logger = None)
+    
+    self.timer_round.start()
+    self.timer_step.start()
+      
 
 
 
@@ -67,6 +92,8 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     """
 
 
+    self.timer_geo.start()
+    
     self.logger.debug(f'Encountered game event(s) {", ".join(map(repr, events))} in step {new_game_state["step"]}')
 
     features   = state_to_features(new_game_state)
@@ -79,6 +106,15 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
         reward = 0
     
     self.training_data.append([features, action, reward])
+
+    # Step timing
+    geo_time  = self.timer_geo.stop()
+    step_time = self.timer_step.stop()
+    
+    self.step_times.append(step_time)
+    self.geo_times.append(geo_time)
+
+    self.timer_step.start()
 
 
 
@@ -96,6 +132,8 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     :param self: The same object that is passed to all of your callbacks.
     """
 
+
+    self.timer_eor.start()
     
     # Update training data of last round
     features = state_to_features(last_game_state)
@@ -113,8 +151,8 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     state_index_old             = find_state(features_old)
     
     ## step 1..end
-    game_length = len(self.training_data)
-    for step in range(1, game_length):
+    step_count = last_game_state['step']
+    for step in range(1, step_count):
         # Preparation
         features_new, action_new, reward_new = self.training_data[step]
         state_index_new                      = find_state(features_new)
@@ -129,17 +167,50 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         state_index_old = state_index_new
         action_old      = action_new
         
-        
     # Save updated Q-function as new model
     self.model = self.Q
-    with open(model_file, "wb") as file:
+    with open(f"model_{model_name}.pt", "wb") as file:
         pickle.dump(self.model, file)
 
-    # Save analysis data
-    round = last_game_state['round']
-    with open(Q_file(round), "wb") as file:
+    # Clean up
+    self.training_data = []
+
+
+    # Training analysis
+    ## Save analysis data
+    current_round = last_game_state['round']
+    with open(Q_file(current_round), "wb") as file:
         np.save(file, self.Q)
 
+    ## Time the training and save the data
+    eor_time      = self.timer_eor.stop()
+    round_time    = self.timer_round.stop()
+    self.timer_step.stop()   # This last timer was started after the last step and thus isn't needed.
+    
+    avg_step_time = np.mean(np.array(self.step_times))
+    avg_act_time  = np.mean(np.array(self.act_times))
+    avg_geo_time  = np.mean(np.array(self.geo_times))
+
+    ### Appending timing data row-wise to timing csv file
+    time_data = np.array([current_round, step_count, 
+                          round_time, avg_step_time, 
+                          avg_act_time, avg_geo_time,
+                          eor_time], ndmin = 2)   # 1xn matrix to become a row
+    with open(timing_file, 'a') as file:
+        np.savetxt(file, time_data, delimiter = '\t')
+
+    ### Clean up
+    self.step_times = []
+    self.act_times  = []
+    self.geo_times  = []
+
+    ### Starting timer again for the next round.
+    self.timer_round.start()
+    self.timer_step.start()
+
+        
+
+    
 
 
 

@@ -10,7 +10,8 @@ import numpy as np
 
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 
-model_file = "model_vq11ch1.pt"
+model_name = "vq11ch1"
+model_file = f"model_{model_name}.pt"
 epsilon = 0.5   # constant for now, could be a function depending on training round later
 
 
@@ -61,22 +62,25 @@ def act(self, game_state: dict) -> str:
     """
     
     
+    self.timer_act.start()
     self.logger.debug("Querying model for action.")
+
     features    = state_to_features(game_state)
     state_index = find_state(features)
 
     if self.train:
         policy        = random_argmax_1d(self.Q[state_index])
         policy_action = ACTIONS[policy]
-        action        = epsilon_greedy(policy_action, epsilon)
-        
-        return action
-        
+        action        = epsilon_greedy(policy_action, epsilon) 
     else:
-        policy        = random_argmax_1d(self.model[state_index])
-        policy_action = ACTIONS[policy]
-        
-        return policy_action
+        policy = random_argmax_1d(self.model[state_index])
+        action = ACTIONS[policy]
+
+    # Timing this function
+    act_time = self.timer_act.stop()
+    self.act_times.append(act_time)
+
+    return action 
 
 
 
