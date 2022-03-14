@@ -16,8 +16,6 @@ epsilon = 0.5   # constant for now, could be a function depending on training ro
 
 
 
-
-
 # Main functions
 # --------------
 
@@ -56,29 +54,32 @@ def act(self, game_state: dict) -> str:
     Your agent should parse the input, think, and take a decision.
     When not in training mode, the maximum execution time for this method is 0.5s.
 
+    Currently: works only for movement actions, i.e. Actions[:4]
+
     :param self: The same object that is passed to all of your callbacks.
     :param game_state: The dictionary that describes everything on the board.
     :return: The action to take as a string.
     """
     
     
-    if self.train:  self.timer_act.start()
+    # if self.train:  self.timer_act.start()
     
-    features    = state_to_features(game_state)
-    state_index = find_state(features)
+    features, feature_indices = state_to_features(game_state)
+    state_index = features_to_indices(features)
 
     if self.train:
         policy        = random_argmax_1d(self.Q[state_index])
-        policy_action = ACTIONS[policy]
+        policy_action = ACTIONS[feature_indices[policy]]
         action        = epsilon_greedy(policy_action, epsilon) 
     else:
         policy = random_argmax_1d(self.model[state_index])
-        action = ACTIONS[policy]
+        action = ACTIONS[feature_indices[policy]]
 
-    # Timing this function
+    '''# Timing this function
     if self.train: 
         act_time = self.timer_act.stop()
         self.act_times.append(act_time)
+    '''
 
     self.logger.debug(f"Querying model for action {action}")
     return action 
@@ -94,8 +95,7 @@ def state_to_features(game_state: dict) -> np.array:
     """
     *This is not a required function, but an idea to structure your code.*
 
-    Converts the game state to the input of your model, i.e.
-    a feature vector.
+    Converts the game state to the input of your model, i.e. a feature vector.
 
     You can find out about the state of the game environment via game_state,
     which is a dictionary. Consult 'get_state_for_agent' in environment.py to see
@@ -123,7 +123,7 @@ def state_to_features(game_state: dict) -> np.array:
     agent_x, agent_y = game_state['self'][3] # Agent position as coordinates 
     coin_direction = look_for_targets(free_space, (agent_x, agent_y), game_state['coins']) # neighbouring field closest to closest coin
 
-    neighbours = [(agent_x + 1, agent_y), (agent_x - 1, agent_y), (agent_x, agent_y + 1), (agent_x, agent_y - 1)]
+    neighbours = [(agent_x, agent_y - 1), (agent_x + 1, agent_y), (agent_x, agent_y + 1), (agent_x - 1, agent_y)]
     
     for j, neighbour in enumerate(neighbours):
         if neighbour == coin_direction: 
@@ -131,7 +131,17 @@ def state_to_features(game_state: dict) -> np.array:
         elif free_space[neighbour[0], neighbour[1]]:
             X[j] = 1
     
-    return(X) 
+    ### design symmetry transformation for Task 1 ###
+    '''
+    List of..
+    1. unique representative feature of set of unordered features
+    2. indices of represented feature
+    '''
+
+    X_unique =  np.sort(X)
+    X_indices = np.argsort(X)
+
+    return([X_unique, X_indices]) 
 
 
 
@@ -200,18 +210,23 @@ def epsilon_greedy (recommended_action, epsilon):
     return np.random.choice([recommended_action, random_action(0)], p = [1 - epsilon, epsilon])
 
 
-
-def find_state (features):
+def features_to_indices(features):
     """
-    currently just assigns one state to each unique features
-    currently, there are 3^4 = 81 different states
-    every point in the feature space gets assigned one number
-    """
-    
-    
-    state_index = features[0]*3**3 + features[1]*3**2 + features[2]*3 + features[3]
-    return state_index  
+    Currently works only for feature dimension = 4!
+    Currently assigns unique Q-indice to every feature, using order-invariance of action
+    Implicitly: A bijective function which maps a value of {0, 1, ..., 15} to each list of order-invariant features
 
+    input: list of 4 features with values in {0, 1, ..., d}, sorted in increasing order
+    output: index of feature in a 1D feature matrix 
+
+    """
+
+    index = int(features[0] + features[1]*(features[1]+1)/2 + features[2]*(features[2]+1)*(features[2]+2)/6 
+             + features[3]*(features[3]+1)*(features[3]+2)*(features[3]+3)/24)
+
+    # index = features[0]*3**3 + features[1]*3**2 + features[2]*3 + features[3] # was before for 3^4 = 81 different states, not considering symmetry
+
+    return(index)
 
 
 def random_argmax_1d(a):

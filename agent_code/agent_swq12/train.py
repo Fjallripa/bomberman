@@ -8,13 +8,13 @@ from typing import List
 from codetiming import Timer
 
 import events as e
-from .callbacks import state_to_features, find_state
+from .callbacks import state_to_features, features_to_indices
 from .callbacks import ACTIONS, model_name
 
 
 # Constants 
-state_count  = 81   # number of possible feature states, currently 81
-action_count = 4 # was previously & should be in general = len(ACTIONS) = 6; changed for task 1
+state_count  = 15   # number of possible feature states, currently 15 considering order-invariance
+action_count = 4 # was previously & should be in general = len(ACTIONS) = 6; changed for task 1; shouldn't be changed without changing feature design & act()
 
 
 # Hyperparameters for Q-update
@@ -61,7 +61,7 @@ def setup_training(self):
     self.step_times = []
     self.act_times  = []
     self.geo_times  = []
-    
+   
     self.timer_round = Timer(logger = None)
     self.timer_step  = Timer(logger = None)
     self.timer_act   = Timer(logger = None)
@@ -69,8 +69,7 @@ def setup_training(self):
     self.timer_eor   = Timer(logger = None)
     
     self.timer_round.start()
-    self.timer_step.start()
-      
+    self.timer_step.start()      
 
 
 
@@ -95,8 +94,9 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
 
     self.timer_geo.start()
     
-    features = state_to_features(new_game_state)
-    action   = ACTIONS.index(self_action)   # find index of self_action
+    features, feature_indices = state_to_features(new_game_state)
+    action   = np.where(feature_indices == [ACTIONS.index(self_action)])[0][0]  # find index of self_action, which was actually picked during training
+    #action   = ACTIONS.index(self_action)   # find index of self_action
     reward   = reward_from_events(self, events) # give auxiliary rewards
 
     self.training_data.append([features, action, reward])
@@ -143,7 +143,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     ## step 0
     features_old, action_old, reward_old \
                     = self.training_data[0]
-    state_index_old = find_state(features_old)
+    state_index_old = features_to_indices(features_old)
     
     ## step 1..end
     step_count = last_game_state['step']
@@ -151,7 +151,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         # Preparation
         features_new, action_new, reward_new \
                         = self.training_data[step]
-        state_index_new = find_state(features_new)
+        state_index_new = features_to_indices(features_new)
         
         Q_state_old  = self.Q[state_index_old][action_old]
         V_state_new  = np.max(self.Q[state_index_new])   # implemented Q-learning instead of SARSA
@@ -178,13 +178,14 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     self.logger.debug(f"eor(): Last Step {last_game_state['step']}")
     self.logger.debug(f'eor(): Encountered game event(s) {", ".join(map(repr, events))}')
     #self.logger.debug(f'eor(): Received reward = {reward}')
-    
+
     ## Save analysis data
     current_round = last_game_state['round']
     with open(Q_file(current_round), "wb") as file:
         np.save(file, self.Q)
 
     ## Time the training and save the data
+
     eor_time      = self.timer_eor.stop()
     round_time    = self.timer_round.stop()
     self.timer_step.stop()   # This last timer was started after the last step and thus isn't needed.
@@ -209,9 +210,6 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     ### Starting timer again for the next round.
     self.timer_round.start()
     self.timer_step.start()
-
-        
-
     
 
 
@@ -236,7 +234,7 @@ def reward_from_events(self, events: List[str]) -> int:
     for event in events:
         if event in game_rewards:
             reward_sum += game_rewards[event]
-    
+
     #self.logger.info(f"Awarded {reward_sum} for events {', '.join(events)}")
     
     return reward_sum
