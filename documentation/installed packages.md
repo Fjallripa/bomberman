@@ -8,3 +8,4 @@ Python 3.10.0
 * matplotlib
 * pygame
 * tqdm
+* codetiming

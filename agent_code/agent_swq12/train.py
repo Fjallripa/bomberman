@@ -43,13 +43,14 @@ def setup_training(self):
 
 
     # Initialize Q
-    self.logger.debug("Starting training by initializing Q.")
     self.Q = np.zeros((state_count, action_count))   # initial guess for Q, for now just zeros
     
     self.training_data = []   # [[features, action_index, reward], ...]  
 
+    # Logging
+    self.logger.debug("str(): Starting training by initializing Q." + '\n' * 2)
 
-    '''# Time training and log it
+    # Time training and log it
     timing_header = "\t".join(['round', 'step_count', 
                                'round_time', 'avg_step_time', 
                                'avg_act_time', 'avg_geo_time',
@@ -60,8 +61,7 @@ def setup_training(self):
     self.step_times = []
     self.act_times  = []
     self.geo_times  = []
-    
-
+   
     self.timer_round = Timer(logger = None)
     self.timer_step  = Timer(logger = None)
     self.timer_act   = Timer(logger = None)
@@ -69,9 +69,7 @@ def setup_training(self):
     self.timer_eor   = Timer(logger = None)
     
     self.timer_round.start()
-    self.timer_step.start()
-    '''
-      
+    self.timer_step.start()      
 
 
 
@@ -94,22 +92,21 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     """
 
 
-    # self.timer_geo.start()
+    self.timer_geo.start()
     
-    self.logger.debug(f'Encountered game event(s) {", ".join(map(repr, events))} in step {new_game_state["step"]}')
-
     features, feature_indices = state_to_features(new_game_state)
-    action = np.where(feature_indices == [ACTIONS.index(self_action)])[0][0]  # find index of self_action, which was actually picked during training
-    if new_game_state['step'] > 1:
-        # reward = new_game_state['self'][1] - old_game_state['self'][1]   # in case of non-auxiliary rewards; otherwise reward_from_events() better place for training reward calculations
-        reward = reward_from_events(self, events) # give auxiliary rewards
+    action   = np.where(feature_indices == [ACTIONS.index(self_action)])[0][0]  # find index of self_action, which was actually picked during training
+    #action   = ACTIONS.index(self_action)   # find index of self_action
+    reward   = reward_from_events(self, events) # give auxiliary rewards
 
-    else:
-        reward = 0
-    
     self.training_data.append([features, action, reward])
 
-    '''# Step timing
+    # Logging
+    self.logger.debug(f"geo(): Step {new_game_state['step']}")
+    self.logger.debug(f'geo(): Encountered game event(s) {", ".join(map(repr, events))}')
+    self.logger.debug(f'geo(): Received reward {reward}')
+
+    # Step timing
     geo_time  = self.timer_geo.stop()
     step_time = self.timer_step.stop()
     
@@ -117,7 +114,6 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     self.geo_times.append(geo_time)
 
     self.timer_step.start()
-    '''
 
 
 
@@ -136,29 +132,26 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     """
 
 
-    # self.timer_eor.start()
-    
+    self.timer_eor.start()
+
     # Update training data of last round
-    features, feature_indices = state_to_features(last_game_state)
-    action = np.where(feature_indices == [ACTIONS.index(last_action)])[0][0]  # find index of self_action, which was actually picked during training
-    reward = 0   # reward of state-after-last-game-state not needed.
-
-    self.training_data.append([features, action, reward])
-    self.logger.debug(f'Encountered event(s) {", ".join(map(repr, events))} in final step')
-
-
+    ## in the last round there doesn't happen anything except e.'SURVIVED_ROUND'. No actions, no rewards (currently), no need to update anything.
+    
+    
     # Updating Q by iterating through every game step
     
     ## step 0
-    features_old, action_old, reward_old = self.training_data[0]
-    state_index_old             = features_to_indices(features_old)
+    features_old, action_old, reward_old \
+                    = self.training_data[0]
+    state_index_old = features_to_indices(features_old)
     
     ## step 1..end
     step_count = last_game_state['step']
     for step in range(1, step_count):
         # Preparation
-        features_new, action_new, reward_new = self.training_data[step]
-        state_index_new                      = features_to_indices(features_new)
+        features_new, action_new, reward_new \
+                        = self.training_data[step]
+        state_index_new = features_to_indices(features_new)
         
         Q_state_old  = self.Q[state_index_old][action_old]
         V_state_new  = np.max(self.Q[state_index_new])   # implemented Q-learning instead of SARSA
@@ -169,8 +162,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         # New state becomes old state
         state_index_old = state_index_new
         action_old      = action_new
-        reward_old = reward_new
-
+        reward_old      = reward_new
         
     # Save updated Q-function as new model
     self.model = self.Q
@@ -182,12 +174,18 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
 
 
     # Training analysis
+    ## Logging
+    self.logger.debug(f"eor(): Last Step {last_game_state['step']}")
+    self.logger.debug(f'eor(): Encountered game event(s) {", ".join(map(repr, events))}')
+    #self.logger.debug(f'eor(): Received reward = {reward}')
+
     ## Save analysis data
     current_round = last_game_state['round']
     with open(Q_file(current_round), "wb") as file:
         np.save(file, self.Q)
 
-    '''## Time the training and save the data
+    ## Time the training and save the data
+
     eor_time      = self.timer_eor.stop()
     round_time    = self.timer_round.stop()
     self.timer_step.stop()   # This last timer was started after the last step and thus isn't needed.
@@ -212,9 +210,6 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     ### Starting timer again for the next round.
     self.timer_round.start()
     self.timer_step.start()
-    '''
-        
-
     
 
 
@@ -239,6 +234,7 @@ def reward_from_events(self, events: List[str]) -> int:
     for event in events:
         if event in game_rewards:
             reward_sum += game_rewards[event]
-    self.logger.info(f"Awarded {reward_sum} for events {', '.join(events)}")
+
+    #self.logger.info(f"Awarded {reward_sum} for events {', '.join(events)}")
     
     return reward_sum
