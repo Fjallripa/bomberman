@@ -10,7 +10,7 @@ import numpy as np
 
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 
-model_name = "vq11ch1"
+model_name = "wq10_5k"
 model_file = f"model_{model_name}.pt"
 epsilon = 0.5   # constant for now, could be a function depending on training round later
 
@@ -63,24 +63,28 @@ def act(self, game_state: dict) -> str:
     
     
     if self.train:  self.timer_act.start()
-    
+
     features    = state_to_features(game_state)
     state_index = find_state(features)
 
     if self.train:
         policy        = random_argmax_1d(self.Q[state_index])
-        policy_action = ACTIONS[policy]
-        action        = epsilon_greedy(policy_action, epsilon) 
+        action, label = epsilon_greedy(ACTIONS[policy], epsilon)
     else:
         policy = random_argmax_1d(self.model[state_index])
         action = ACTIONS[policy]
+        label  = "policy"
 
+    # Logging
+    self.logger.debug(f"act(): Round {game_state['round']}, Step {game_state['step']}:")
+    self.logger.debug(f"act(): Game State: Position {game_state['self'][3]}, Feature {features}, Q-index {state_index}")
+    self.logger.debug(f"act(): Performed {label} action {action}")
+    
     # Timing this function
     if self.train: 
         act_time = self.timer_act.stop()
         self.act_times.append(act_time)
 
-    self.logger.debug(f"Querying model for action {action}")
     return action 
 
 
@@ -123,7 +127,8 @@ def state_to_features(game_state: dict) -> np.array:
     agent_x, agent_y = game_state['self'][3] # Agent position as coordinates 
     coin_direction = look_for_targets(free_space, (agent_x, agent_y), game_state['coins']) # neighbouring field closest to closest coin
 
-    neighbours = [(agent_x + 1, agent_y), (agent_x - 1, agent_y), (agent_x, agent_y + 1), (agent_x, agent_y - 1)]
+    neighbours = [(agent_x, agent_y - 1), (agent_x + 1, agent_y), 
+                  (agent_x, agent_y + 1), (agent_x - 1, agent_y)]   # UP, RIGHT, DOWN, LEFT from (x, y)
     
     for j, neighbour in enumerate(neighbours):
         if neighbour == coin_direction: 
@@ -175,7 +180,8 @@ def look_for_targets(free_space, start, targets, logger=None):
         
         # Add unexplored free neighboring tiles to the queue in a random order
         x, y = current
-        neighbors = [(x, y) for (x, y) in [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)] if free_space[x, y]]
+        directions = [(x, y - 1), (x + 1, y), (x, y + 1), (x - 1, y)]   # UP, RIGHT, DOWN, LEFT from (x, y)
+        neighbors  = [(x, y) for (x, y) in directions if free_space[x, y]]
         random.shuffle(neighbors)
         for neighbor in neighbors:
             if neighbor not in parent_dict:
@@ -197,7 +203,10 @@ def epsilon_greedy (recommended_action, epsilon):
     
     random_action = lambda x: np.random.choice(ACTIONS[:4])  # don't wait or kill yourself
 
-    return np.random.choice([recommended_action, random_action(0)], p = [1 - epsilon, epsilon])
+    choice = np.random.choice([0, 1], p = [1 - epsilon, epsilon])
+    action = [recommended_action, random_action(0)][choice]
+    label  = ['policy', 'random'][choice]   # For the debugger
+    return (action, label)
 
 
 
