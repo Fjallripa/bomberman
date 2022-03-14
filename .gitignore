@@ -115,4 +115,4 @@ results/
 
 # Ignore big analysis data
 **/logs/Q_data/Q*.npy
-**/model_*.pt
+agent_code/agent_*/model_*.pt
