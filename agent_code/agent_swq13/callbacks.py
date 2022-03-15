@@ -16,7 +16,7 @@ model_file = f"model_{model_name}.pt"
 
 # Calculating an anealing epsilon
 training_rounds        = 100   # Can't this be taken from main?
-epsilon_at_last_round  = 0.01   # Set to desired value
+epsilon_at_last_round  = 0.1   # Set to desired value
 epsilon_at_first_round = np.power(epsilon_at_last_round, 1 / training_rounds)  # n-th root of epsilon_at_last_round
 epsilon                = lambda round: \
     np.power(epsilon_at_first_round, round)   # does exponentially decrease with training rounds.
@@ -185,29 +185,29 @@ def look_for_targets(free_space, start, targets, logger=None):
     
     if len(targets) == 0: return None
 
-    frontier = [start]
-    parent_dict = {start: start}
-    dist_so_far = {start: 0}
-    best = start
-    best_dist = np.sum(np.abs(np.subtract(targets, start)), axis=1).min()
+    frontier    = [start]         # tree leaves
+    parent_dict = {start: start}  # branching points
+    dist_so_far = {start: 0}      # branch lengths
+    best        = start
+    best_dist   = np.sum(np.abs(np.subtract(targets, start)), axis=1).min()
 
-    while len(frontier) > 0:
+    while len(frontier) > 0:   # While there still are reachable tiles
         current = frontier.pop(0)
         
         # Find distance from current position to all targets, track closest
         d = np.sum(np.abs(np.subtract(targets, current)), axis=1).min()
-        if d + dist_so_far[current] <= best_dist:
-            best = current
+        if d + dist_so_far[current] <= best_dist:   # In case no coin is reachable, find reachable tile closest to closest coin.
+            best      = current
             best_dist = d + dist_so_far[current]
-        if d == 0:
+        if d == 0:   # In case there is a reachable coin, stop only if you have found a path to it.
             # Found path to a target's exact position, mission accomplished!
             best = current
             break
         
         # Add unexplored free neighboring tiles to the queue in a random order
-        x, y = current
+        x, y       = current
         directions = [(x, y - 1), (x + 1, y), (x, y + 1), (x - 1, y)]   # UP, RIGHT, DOWN, LEFT from (x, y)
-        neighbors  = [(x, y) for (x, y) in directions if free_space[x, y]]
+        neighbors  = [(x_dir, y_dir)  for (x_dir, y_dir) in directions  if free_space[x_dir, y_dir]]
         random.shuffle(neighbors)
         for neighbor in neighbors:
             if neighbor not in parent_dict:
@@ -220,7 +220,7 @@ def look_for_targets(free_space, start, targets, logger=None):
     # Determine the first step towards the best found target tile
     current = best
     while True:
-        if parent_dict[current] == start: return current
+        if parent_dict[current] == start:  return current
         current = parent_dict[current]
 
 
