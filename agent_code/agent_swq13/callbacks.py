@@ -11,12 +11,12 @@ import numpy as np
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 
 
-model_name = "swq13_test"
+model_name = "swq13_more-targets"
 model_file = f"model_{model_name}.pt"
 
 # Calculating an anealing epsilon
 training_rounds        = 100   # Can't this be taken from main?
-epsilon_at_last_round  = 0.1   # Set to desired value
+epsilon_at_last_round  = 0.05   # Set to desired value
 epsilon_at_first_round = np.power(epsilon_at_last_round, 1 / training_rounds)  # n-th root of epsilon_at_last_round
 epsilon                = lambda round: \
     np.power(epsilon_at_first_round, round)   # does exponentially decrease with training rounds.
@@ -138,13 +138,13 @@ def state_to_features(game_state: dict) -> np.array:
     
     free_space = game_state['field'] == 0 # Boolean numpy array. True for free tiles and False for Crates & Walls
     agent_x, agent_y = game_state['self'][3] # Agent position as coordinates 
-    coin_direction = look_for_targets(free_space, (agent_x, agent_y), game_state['coins']) # neighbouring field closest to closest coin
-
+    coin_directions = look_for_targets(free_space, (agent_x, agent_y), game_state['coins']) # neighbouring field closest to closest coin
+    
     neighbours = [(agent_x, agent_y - 1), (agent_x + 1, agent_y), 
                   (agent_x, agent_y + 1), (agent_x - 1, agent_y)]   # UP, RIGHT, DOWN, LEFT from (x, y)
 
     for j, neighbour in enumerate(neighbours):
-        if neighbour == coin_direction: 
+        if neighbour in coin_directions: 
             X[j] = 2
         elif free_space[neighbour[0], neighbour[1]]:
             X[j] = 1
@@ -164,8 +164,6 @@ def state_to_features(game_state: dict) -> np.array:
     return([X_unique, X_indices]) 
     '''
 
-
-
 def look_for_targets(free_space, start, targets, logger=None):
     """
     Find direction of closest target that can be reached via free tiles.
@@ -183,46 +181,61 @@ def look_for_targets(free_space, start, targets, logger=None):
     """
     
     
-    if len(targets) == 0: return None
+    if len(targets) == 0: return []
 
     frontier    = [start]         # tree leaves
     parent_dict = {start: start}  # branching points
     dist_so_far = {start: 0}      # branch lengths
-    best        = start
+    best_ones   = []
+    next_best   = []   # If no coin is reachable
     best_dist   = np.sum(np.abs(np.subtract(targets, start)), axis=1).min()
+    found_one   = False
 
     while len(frontier) > 0:   # While there still are reachable tiles
         current = frontier.pop(0)
         
         # Find distance from current position to all targets, track closest
         d = np.sum(np.abs(np.subtract(targets, current)), axis=1).min()
-        if d + dist_so_far[current] <= best_dist:   # In case no coin is reachable, find reachable tile closest to closest coin.
-            best      = current
-            best_dist = d + dist_so_far[current]
+        current_dist = d + dist_so_far[current]
         if d == 0:   # In case there is a reachable coin, stop only if you have found a path to it.
             # Found path to a target's exact position, mission accomplished!
-            best = current
-            break
+            best_ones.append(current)
+            best_dist = current_dist
+            found_one = True
+        elif current_dist == best_dist:   # In case no coin is reachable, find reachable tile closest to closest coin.
+            next_best.append(current)   
+        elif current_dist < best_dist:
+            next_best = [current]
+            best_dist = current_dist
         
-        # Add unexplored free neighboring tiles to the queue in a random order
-        x, y       = current
-        directions = [(x, y - 1), (x + 1, y), (x, y + 1), (x - 1, y)]   # UP, RIGHT, DOWN, LEFT from (x, y)
-        neighbors  = [(x_dir, y_dir)  for (x_dir, y_dir) in directions  if free_space[x_dir, y_dir]]
-        random.shuffle(neighbors)
-        for neighbor in neighbors:
-            if neighbor not in parent_dict:
-                frontier.append(neighbor)
-                parent_dict[neighbor] = current
-                dist_so_far[neighbor] = dist_so_far[current] + 1
+        if found_one and dist_so_far[current] >= best_dist:   # If one target has already been found and this tile doesn't have a target, forget about it.
+            # Forget about current tile
+            continue    
+        else:   # else expand the frontier by adding neighbors        
+            # Add unexplored free neighboring tiles to the queue in a random order
+            x, y       = current
+            directions = [(x, y - 1), (x + 1, y), (x, y + 1), (x - 1, y)]   # UP, RIGHT, DOWN, LEFT from (x, y)
+            neighbors  = [(x_dir, y_dir)  for (x_dir, y_dir) in directions  if free_space[x_dir, y_dir]]
+            random.shuffle(neighbors)
+            for neighbor in neighbors:
+                if neighbor not in parent_dict:
+                    frontier.append(neighbor)
+                    parent_dict[neighbor] = current
+                    dist_so_far[neighbor] = dist_so_far[current] + 1
     
-    if logger: logger.debug(f'Suitable target found at {best}')
     
-    # Determine the first step towards the best found target tile
-    current = best
-    while True:
-        if parent_dict[current] == start:  return current
-        current = parent_dict[current]
-
+    if logger: logger.debug(f'Suitable target(s) found at {best_ones}')
+    
+    # Determine the first step (best direction(s)) towards the best found target tile(s)
+    best = best_ones  if found_one  else  next_best
+    directions = []
+    for current in best:
+        while parent_dict[current] != start:
+            current = parent_dict[current]
+        if current not in directions:  directions.append(current)
+    
+    return directions
+  
 
 
 def epsilon_greedy (recommended_action, epsilon):
