@@ -79,6 +79,7 @@ def act(self, game_state: dict) -> str:
     # Logging
     self.logger.debug(f"act(): Round {game_state['round']}, Step {game_state['step']}:")
     self.logger.debug(f"act(): Game State: Position {game_state['self'][3]}, Feature {features}, Q-index {state_index}")
+    #self.logger.debug(f"act(): Symmetry: game features: ")  # Add that functionality
     self.logger.debug(f"act(): Performed {label} action {action}")
     
     # Timing this function
