@@ -11,10 +11,11 @@ import numpy as np
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 
 
-
 model_name = "swq12"
 model_file = f"model_{model_name}.pt"
 epsilon = 0.5   # constant for now, could be a function depending on training round later
+
+
 
 
 
@@ -68,20 +69,17 @@ def act(self, game_state: dict) -> str:
     state_index               = features_to_indices(features)
 
     if self.train:
-        sorted_policy = random_argmax_1d(self.Q_old[state_index])
-        policy        = sorting_indices[sorted_policy]  
-        action, label = epsilon_greedy(ACTIONS[policy], epsilon)
+        policy        = random_argmax_1d(self.Q_old[state_index])
+        action, label = epsilon_greedy(ACTIONS[feature_indices[policy]], epsilon)
     else:
-        sorted_policy = random_argmax_1d(self.model[state_index])
-        policy        = sorting_indices[sorted_policy]
-        action        = ACTIONS[policy]
-        label         = "policy"
+        policy = random_argmax_1d(self.model[state_index])
+        action = ACTIONS[feature_indices[policy]]
+        label  = "policy"
 
     # Logging
     self.logger.debug(f"act(): Round {game_state['round']}, Step {game_state['step']}:")
-
-    self.logger.debug(f"act(): Game State: Position {game_state['self'][3]}, Features {unsorted_features}")
-    self.logger.debug(f"act(): Symmetry: Sorted features {features}, Q-index {state_index}, Sorted policy {sorted_policy}")
+    self.logger.debug(f"act(): Game State: Position {game_state['self'][3]}, Unsorted Feature {unsorted_features}, Q-index {state_index}")
+    #self.logger.debug(f"act(): Symmetry: game features: {unsorted_features}")  # Add that functionality
     self.logger.debug(f"act(): Performed {label} action {action}")
     
     # Timing this function
@@ -149,7 +147,6 @@ def state_to_features(game_state: dict, return_unsorted_features = False) -> np.
     X_unique =  np.sort(X)
     X_indices = np.argsort(X)
 
-
     if return_unsorted_features == False:
         return([X_unique, X_indices]) 
     
@@ -157,7 +154,6 @@ def state_to_features(game_state: dict, return_unsorted_features = False) -> np.
         return([X_unique, X_indices, X])
 
     
-
 
 
 
