@@ -1,4 +1,4 @@
-# Training for agent_swq12
+# Training for agent_swq13
 # ========================
 
 
@@ -18,8 +18,8 @@ action_count = 4 # was previously & should be in general = len(ACTIONS) = 6; cha
 
 
 # Hyperparameters for Q-update
-alpha = 1/5   # initially set to 1
-gamma = 0.5   # initially set to 1
+alpha = 0.01   # initially set to 1
+gamma = 0   # initially set to 1
 
 # Training analysis
 Q_file      = lambda x: f"logs/Q_data/Q{x}.npy"
@@ -85,10 +85,10 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     This is *one* of the places where you could update your agent.
 
     :param self: This object is passed to all callbacks and you can set arbitrary values.
-    :param old_game_state: The state before the new_game_state.
+    :param old_game_state: The state that was passed to the last call of `act`.
     :param self_action: The action that you took.
-    :param new_game_state: The state that was passed to the last call of `act`.
-    :param events: The events that occurred when going from `new_game_state` to next game state.
+    :param new_game_state: The state the agent is in now.
+    :param events: The events that occurred when going from  `old_game_state` to `new_game_state`
     """
 
 
@@ -138,33 +138,13 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     :param self: The same object that is passed to all of your callbacks.
     """
 
+
     self.timer_eor.start()
 
     # Update training data of last round
     ## in the last round there doesn't happen anything except e.'SURVIVED_ROUND'. No actions, no rewards (currently), no need to update anything.
     
-    # Updating Q by iterating through whole training data
-    self.Q_new = np.zeros_like(self.Q_old) # initialize
-    counter = np.zeros_like(self.Q_old)
-
-    for t, training_data in enumerate(self.training_data):
-        this_state = features_to_indices(training_data[0])
-        this_action = training_data[1]
-        self.Q_new[this_state, this_action] += self.Q_old[this_state, this_action] * (1 - alpha) \
-            + alpha * Q_update(self, t, n = 3, mode = "SARSA") # change learning mode (n-step, Q-learning vs. SARSA) here
-        counter[this_state, this_action] += 1
-
-    self.Q_old = self.Q_new / np.where(counter != 0, counter, 1) # fix singularity bug
-
-    # Save & clean up
-    self.model = self.Q_old
-    with open(f"model_{model_name}.pt", "wb") as file: 
-        pickle.dump(self.model, file)
-
-    self.training_data = []
-
-    """
-
+    
     # Updating Q by iterating through every game step
     #self.Q_new = self.Q_old
     
@@ -182,7 +162,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         state_index_new = features_to_indices(features_new)
         
         Q_state_old  = self.Q_old[state_index_old][action_old]
-        V_state_new  = np.amax(self.Q_old[state_index_new])   # implemented Q-learning instead of SARSA
+        V_state_new  = np.max(self.Q_old[state_index_new])   # implemented Q-learning instead of SARSA
         
         # Q-Update
         #self.Q_new...
@@ -192,8 +172,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         state_index_old = state_index_new
         action_old      = action_new
         reward_old      = reward_new
-    
-
+        
     # Save updated Q-function as new model
     #self.Q_old = self.Q_new
     self.model = self.Q_old
@@ -203,7 +182,6 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     # Clean up
     self.training_data = []
 
-    """
 
     # Training analysis
     ## Logging
@@ -227,7 +205,6 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     avg_geo_time  = np.mean(np.array(self.geo_times))
 
     ### Appending timing data row-wise to timing csv file
-    step_count = last_game_state['step'] # added for logging
     time_data = np.array([current_round, step_count, 
                           round_time, avg_step_time, 
                           avg_act_time, avg_geo_time,
@@ -271,43 +248,3 @@ def reward_from_events(self, events: List[str]) -> int:
     if not self.train:  self.logger.info(f" Awarded {reward_sum} for events {', '.join(events)}")
     
     return reward_sum
-
-def Q_update(self, t, mode = "Q-Learning", n = 1,  gamma = gamma):
-    """
-    Computes the new value during Q-learning.
-
-    Input:
-    ======
-    self: 
-    n: for n-step Q-learning
-    gamma: hyperparameter
-    mode: "SARSA" or "Q-Learning"
-
-    Output:
-    =======
-    the value to update Q, a scalar
-    """
-    t_plus_n = min(t+n, len(self.training_data)-1)
-
-    # Approximate Q after next n steps
-    state_next_n_steps = features_to_indices(self.training_data[t_plus_n][0])
-
-    if mode == "Q-Learning":
-        v = np.amax(self.Q_old[state_next_n_steps])
-    
-    elif mode == "SARSA":
-        action_next_n_steps = self.training_data[t_plus_n][1]
-        v = self.Q_old[state_next_n_steps, action_next_n_steps]
-    
-    # Compute Reward Sum for next n steps
-    reward_sum = 0
-    for s in range(t, t_plus_n):
-        reward_sum += gamma**(s-t) * self.training_data[s][2]
-    
-    return(reward_sum + gamma**n * v)
-
-
-
-
-
-

@@ -1,5 +1,5 @@
-# Callbacks for agent_swq12
-# ========================
+# Callbacks for agent_swq13
+# =========================
 
 
 import os
@@ -11,10 +11,11 @@ import numpy as np
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 
 
-
-model_name = "swq12"
+model_name = "swq12_sorted-features"
 model_file = f"model_{model_name}.pt"
 epsilon = 0.5   # constant for now, could be a function depending on training round later
+
+
 
 
 
@@ -64,8 +65,10 @@ def act(self, game_state: dict) -> str:
     
     if self.train:  self.timer_act.start()
 
-    features, feature_indices, unsorted_features = state_to_features(game_state, return_unsorted_features = True)
-    state_index               = features_to_indices(features)
+    features        = state_to_features(game_state)
+    sorting_indices = np.argsort(features)   # Moved sorting here to be able to log both sorted and unsorted features.
+    sorted_features = features[sorting_indices]
+    state_index     = features_to_indices(sorted_features)
 
     if self.train:
         sorted_policy = random_argmax_1d(self.Q_old[state_index])
@@ -79,9 +82,8 @@ def act(self, game_state: dict) -> str:
 
     # Logging
     self.logger.debug(f"act(): Round {game_state['round']}, Step {game_state['step']}:")
-
-    self.logger.debug(f"act(): Game State: Position {game_state['self'][3]}, Features {unsorted_features}")
-    self.logger.debug(f"act(): Symmetry: Sorted features {features}, Q-index {state_index}, Sorted policy {sorted_policy}")
+    self.logger.debug(f"act(): Game State: Position {game_state['self'][3]}, Features {features}")
+    self.logger.debug(f"act(): Symmetry: Sorted features {sorted_features}, Q-index {state_index}, Sorted policy {sorted_policy}")
     self.logger.debug(f"act(): Performed {label} action {action}")
     
     # Timing this function
@@ -98,7 +100,7 @@ def act(self, game_state: dict) -> str:
 # Support functions
 # -----------------
 
-def state_to_features(game_state: dict, return_unsorted_features = False) -> np.array:
+def state_to_features(game_state: dict) -> np.array:
     """
     *This is not a required function, but an idea to structure your code.*
 
@@ -146,18 +148,13 @@ def state_to_features(game_state: dict, return_unsorted_features = False) -> np.
     2. indices of represented feature
     '''
 
+    return X
+    '''
     X_unique =  np.sort(X)
     X_indices = np.argsort(X)
 
-
-    if return_unsorted_features == False:
-        return([X_unique, X_indices]) 
-    
-    else:
-        return([X_unique, X_indices, X])
-
-    
-
+    return([X_unique, X_indices]) 
+    '''
 
 
 
@@ -210,7 +207,7 @@ def look_for_targets(free_space, start, targets, logger=None):
                 parent_dict[neighbor] = current
                 dist_so_far[neighbor] = dist_so_far[current] + 1
     
-    if logger: logger.debug(f'Suitable target found at {best}') # doesn't work
+    if logger: logger.debug(f'Suitable target found at {best}')
     
     # Determine the first step towards the best found target tile
     current = best
