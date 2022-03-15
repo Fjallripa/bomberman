@@ -11,9 +11,15 @@ import numpy as np
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 
 
-model_name = "swq12_sorted-features"
+model_name = "swq13_test"
 model_file = f"model_{model_name}.pt"
-epsilon = 0.5   # constant for now, could be a function depending on training round later
+
+# Calculating an anealing epsilon
+training_rounds        = 100   # Can't this be taken from main?
+epsilon_at_last_round  = 0.01   # Set to desired value
+epsilon_at_first_round = np.power(epsilon_at_last_round, 1 / training_rounds)  # n-th root of epsilon_at_last_round
+epsilon                = lambda round: \
+    np.power(epsilon_at_first_round, round)   # does exponentially decrease with training rounds.
 
 
 
@@ -70,10 +76,12 @@ def act(self, game_state: dict) -> str:
     sorted_features = features[sorting_indices]
     state_index     = features_to_indices(sorted_features)
 
+    round = game_state['round']
+    eps   = epsilon(round)
     if self.train:
-        sorted_policy = random_argmax_1d(self.Q_old[state_index])
+        sorted_policy = random_argmax_1d(self.Q[state_index])
         policy        = sorting_indices[sorted_policy]  
-        action, label = epsilon_greedy(ACTIONS[policy], epsilon)
+        action, label = epsilon_greedy(ACTIONS[policy], eps)
     else:
         sorted_policy = random_argmax_1d(self.model[state_index])
         policy        = sorting_indices[sorted_policy]
@@ -81,8 +89,8 @@ def act(self, game_state: dict) -> str:
         label         = "policy"
 
     # Logging
-    self.logger.debug(f"act(): Round {game_state['round']}, Step {game_state['step']}:")
-    self.logger.debug(f"act(): Game State: Position {game_state['self'][3]}, Features {features}")
+    self.logger.debug(f"act(): Round {round}, Step {game_state['step']}:")
+    self.logger.debug(f"act(): Game State: Position {game_state['self'][3]}, Features {features}, epsilon {eps}")
     self.logger.debug(f"act(): Symmetry: Sorted features {sorted_features}, Q-index {state_index}, Sorted policy {sorted_policy}")
     self.logger.debug(f"act(): Performed {label} action {action}")
     
