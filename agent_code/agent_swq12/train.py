@@ -94,12 +94,19 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
 
     self.timer_geo.start()
     
-    features, feature_indices = state_to_features(new_game_state)
-    action   = np.where(feature_indices == [ACTIONS.index(self_action)])[0][0]  # find index of self_action, which was actually picked during training
-    #action   = ACTIONS.index(self_action)   # find index of self_action
-    reward   = reward_from_events(self, events) # give auxiliary rewards
+    # Collecting training data: 
+    ## new_game_state -> sorted features, 
+    ## self_action    -> sorted policy, 
+    ## events         -> reward
+    features        = state_to_features(new_game_state)
+    sorting_indices = np.argsort(features)   # Moved sorting here to be able to log both sorted and unsorted features.
+    sorted_features = features[sorting_indices]
+    policy          = ACTIONS.index(self_action)
+    sorted_policy   = list(sorting_indices).index(policy)   # find index of self_action, which was actually picked during training
+    reward          = reward_from_events(self, events)   # give auxiliary rewards
+    
+    self.training_data.append([sorted_features, sorted_policy, reward])
 
-    self.training_data.append([features, action, reward])
 
     # Logging
     self.logger.debug(f"geo(): Step {new_game_state['step']}")
@@ -238,6 +245,6 @@ def reward_from_events(self, events: List[str]) -> int:
         if event in game_rewards:
             reward_sum += game_rewards[event]
 
-    #self.logger.info(f"Awarded {reward_sum} for events {', '.join(events)}")
+    if not self.train:  self.logger.info(f" Awarded {reward_sum} for events {', '.join(events)}")
     
     return reward_sum

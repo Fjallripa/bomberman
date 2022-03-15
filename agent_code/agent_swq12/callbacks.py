@@ -11,7 +11,7 @@ import numpy as np
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 
 
-model_name = "swq12_zero_gamma"
+model_name = "swq12_sorted-features"
 model_file = f"model_{model_name}.pt"
 epsilon = 0.5   # constant for now, could be a function depending on training round later
 
@@ -65,21 +65,25 @@ def act(self, game_state: dict) -> str:
     
     if self.train:  self.timer_act.start()
 
-    features, feature_indices = state_to_features(game_state)
-    state_index               = features_to_indices(features)
+    features        = state_to_features(game_state)
+    sorting_indices = np.argsort(features)   # Moved sorting here to be able to log both sorted and unsorted features.
+    sorted_features = features[sorting_indices]
+    state_index     = features_to_indices(sorted_features)
 
     if self.train:
-        policy        = random_argmax_1d(self.Q_old[state_index])
-        action, label = epsilon_greedy(ACTIONS[feature_indices[policy]], epsilon)
+        sorted_policy = random_argmax_1d(self.Q_old[state_index])
+        policy        = sorting_indices[sorted_policy]  
+        action, label = epsilon_greedy(ACTIONS[policy], epsilon)
     else:
-        policy = random_argmax_1d(self.model[state_index])
-        action = ACTIONS[feature_indices[policy]]
-        label  = "policy"
+        sorted_policy = random_argmax_1d(self.model[state_index])
+        policy        = sorting_indices[sorted_policy]
+        action        = ACTIONS[policy]
+        label         = "policy"
 
     # Logging
     self.logger.debug(f"act(): Round {game_state['round']}, Step {game_state['step']}:")
-    self.logger.debug(f"act(): Game State: Position {game_state['self'][3]}, Feature {features}, Q-index {state_index}")
-    #self.logger.debug(f"act(): Symmetry: game features: ")  # Add that functionality
+    self.logger.debug(f"act(): Game State: Position {game_state['self'][3]}, Features {features}")
+    self.logger.debug(f"act(): Symmetry: Sorted features {sorted_features}, Q-index {state_index}, Sorted policy {sorted_policy}")
     self.logger.debug(f"act(): Performed {label} action {action}")
     
     # Timing this function
@@ -144,10 +148,13 @@ def state_to_features(game_state: dict) -> np.array:
     2. indices of represented feature
     '''
 
+    return X
+    '''
     X_unique =  np.sort(X)
     X_indices = np.argsort(X)
 
     return([X_unique, X_indices]) 
+    '''
 
 
 
