@@ -43,9 +43,12 @@ def setup_training(self):
 
 
     # Initialize Q
-    self.Q = np.zeros((state_count, action_count))   # initial guess for Q, for now just zeros
+    self.model = self.Q = np.zeros((state_count, action_count))   # initial guess for Q, for now just zeros
     
-    self.training_data = []   # [[features, action_index, reward], ...]  
+    #self.training_data = []   # [[features, action_index, reward], ...]  
+    self.state_indices   = []
+    self.sorted_policies = []
+    self.rewards         = []
 
     # Logging
     self.logger.debug("str(): Starting training by initializing Q." + '\n' * 2)
@@ -98,18 +101,20 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     ## new_game_state -> sorted features, 
     ## self_action    -> sorted policy, 
     ## events         -> reward
+    '''
     features        = state_to_features(new_game_state)
     sorting_indices = np.argsort(features)   # Moved sorting here to be able to log both sorted and unsorted features.
     sorted_features = features[sorting_indices]
     policy          = ACTIONS.index(self_action)
     sorted_policy   = list(sorting_indices).index(policy)   # find index of self_action, which was actually picked during training
+    '''
     reward          = reward_from_events(self, events)   # give auxiliary rewards
-    
-    self.training_data.append([sorted_features, sorted_policy, reward])
+    self.rewards.append(reward)
+    #self.training_data.append([sorted_features, sorted_policy, reward])
 
 
     # Logging
-    self.logger.debug(f"geo(): Step {new_game_state['step']}")
+    #self.logger.debug(f"geo(): Step {new_game_state['step']}")
     self.logger.debug(f'geo(): Encountered game event(s) {", ".join(map(repr, events))}')
     self.logger.debug(f'geo(): Received reward {reward}')
 
@@ -153,23 +158,29 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     step_count = last_game_state['step']
     for step in range(step_count):
         # Calculate the state-action pair (S, a)
+        '''
         sorted_features, action_index, reward \
                     = self.training_data[step]
         state_index = features_to_indices(sorted_features)
+        '''
+        state_index   = self.state_indices[step]
+        sorted_policy = self.sorted_policies[step]
+        reward        = self.rewards[step]
 
         # Calculate predicted future gain
         if step + 1 < step_count:
-            features_next    = self.training_data[step + 1][0]
-            state_index_next = features_to_indices(features_next)
+            #features_next    = self.training_data[step + 1][0]
+            #state_index_next = features_to_indices(features_next)
+            state_index_next = self.state_indices[step + 1]
             V = np.amax(self.Q[state_index_next])
         else:
             V = 0
         
         
         # Update gain for (S, a)
-        sum_of_gain_per_Sa[state_index, action_index] \
+        sum_of_gain_per_Sa[state_index, sorted_policy] \
             += reward + gamma * V
-        number_of_Sa_steps[state_index, action_index] \
+        number_of_Sa_steps[state_index, sorted_policy] \
             += 1
 
     # Average estimated gain per (S, a)
@@ -185,7 +196,10 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         pickle.dump(self.model, file)
 
     # Clean up
-    self.training_data = []
+    #self.training_data = []
+    self.state_indices   = []
+    self.sorted_policies = []
+    self.rewards         = []
 
 
     # Training analysis
@@ -197,7 +211,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     ## Save analysis data
     current_round = last_game_state['round']
     with open(Q_file(current_round), "wb") as file:
-        np.save(file, self.Q)
+        np.save(file, self.model)
 
     ## Time the training and save the data
 

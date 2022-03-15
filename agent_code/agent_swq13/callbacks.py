@@ -11,7 +11,7 @@ import numpy as np
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 
 
-model_name = "swq13_more-targets"
+model_name = "swq13_train-data"
 model_file = f"model_{model_name}.pt"
 
 # Calculating an anealing epsilon
@@ -79,9 +79,11 @@ def act(self, game_state: dict) -> str:
     round = game_state['round']
     eps   = epsilon(round)
     if self.train:
-        sorted_policy = random_argmax_1d(self.Q[state_index])
+        sorted_policy = random_argmax_1d(self.model[state_index])
         policy        = sorting_indices[sorted_policy]  
         action, label = epsilon_greedy(ACTIONS[policy], eps)
+        self.state_indices.append(state_index)
+        self.sorted_policies.append(sorted_policy)
     else:
         sorted_policy = random_argmax_1d(self.model[state_index])
         policy        = sorting_indices[sorted_policy]
@@ -139,7 +141,8 @@ def state_to_features(game_state: dict) -> np.array:
     free_space = game_state['field'] == 0 # Boolean numpy array. True for free tiles and False for Crates & Walls
     agent_x, agent_y = game_state['self'][3] # Agent position as coordinates 
     coin_directions = look_for_targets(free_space, (agent_x, agent_y), game_state['coins']) # neighbouring field closest to closest coin
-    
+    print(f"{str(game_state['step']):3}: {str(game_state['self'][3]):8} -> {coin_directions}")
+
     neighbours = [(agent_x, agent_y - 1), (agent_x + 1, agent_y), 
                   (agent_x, agent_y + 1), (agent_x - 1, agent_y)]   # UP, RIGHT, DOWN, LEFT from (x, y)
 
@@ -229,12 +232,20 @@ def look_for_targets(free_space, start, targets, logger=None):
     # Determine the first step (best direction(s)) towards the best found target tile(s)
     best = best_ones  if found_one  else  next_best
     directions = []
+    while len(best) > 0:
+        current = best.pop(0)
+        parent = parent_dict[current]
+        if parent == start:
+            if current not in directions:  directions.append(current)
+        elif parent not in best:
+            best.append(parent)
+    return directions
+    '''
     for current in best:
         while parent_dict[current] != start:
             current = parent_dict[current]
         if current not in directions:  directions.append(current)
-    
-    return directions
+    '''
   
 
 
