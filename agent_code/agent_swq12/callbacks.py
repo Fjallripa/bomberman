@@ -11,7 +11,7 @@ import numpy as np
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 
 
-model_name = "swq12"
+model_name = "swq12_zero_gamma"
 model_file = f"model_{model_name}.pt"
 epsilon = 0.5   # constant for now, could be a function depending on training round later
 
@@ -69,7 +69,7 @@ def act(self, game_state: dict) -> str:
     state_index               = features_to_indices(features)
 
     if self.train:
-        policy        = random_argmax_1d(self.Q[state_index])
+        policy        = random_argmax_1d(self.Q_old[state_index])
         action, label = epsilon_greedy(ACTIONS[feature_indices[policy]], epsilon)
     else:
         policy = random_argmax_1d(self.model[state_index])

@@ -18,8 +18,8 @@ action_count = 4 # was previously & should be in general = len(ACTIONS) = 6; cha
 
 
 # Hyperparameters for Q-update
-alpha = 1   # initially set to 1
-gamma = 1   # initially set to 1
+alpha = 0.01   # initially set to 1
+gamma = 0   # initially set to 1
 
 # Training analysis
 Q_file      = lambda x: f"logs/Q_data/Q{x}.npy"
@@ -43,7 +43,7 @@ def setup_training(self):
 
 
     # Initialize Q
-    self.Q = np.zeros((state_count, action_count))   # initial guess for Q, for now just zeros
+    self.Q_old = np.zeros((state_count, action_count))   # initial guess for Q, for now just zeros
     
     self.training_data = []   # [[features, action_index, reward], ...]  
 
@@ -139,6 +139,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     
     
     # Updating Q by iterating through every game step
+    #self.Q_new = self.Q_old
     
     ## step 0
     features_old, action_old, reward_old \
@@ -153,11 +154,12 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
                         = self.training_data[step]
         state_index_new = features_to_indices(features_new)
         
-        Q_state_old  = self.Q[state_index_old][action_old]
-        V_state_new  = np.max(self.Q[state_index_new])   # implemented Q-learning instead of SARSA
+        Q_state_old  = self.Q_old[state_index_old][action_old]
+        V_state_new  = np.max(self.Q_old[state_index_new])   # implemented Q-learning instead of SARSA
         
         # Q-Update
-        self.Q[state_index_old][action_old] = Q_state_old + alpha * (reward_old + gamma * V_state_new - Q_state_old)  # also try alpha / N_Sa
+        #self.Q_new...
+        self.Q_old[state_index_old][action_old] = Q_state_old + alpha * (reward_old + gamma * V_state_new - Q_state_old)  # also try alpha / N_Sa
 
         # New state becomes old state
         state_index_old = state_index_new
@@ -165,7 +167,8 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         reward_old      = reward_new
         
     # Save updated Q-function as new model
-    self.model = self.Q
+    #self.Q_old = self.Q_new
+    self.model = self.Q_old
     with open(f"model_{model_name}.pt", "wb") as file:
         pickle.dump(self.model, file)
 
@@ -182,7 +185,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     ## Save analysis data
     current_round = last_game_state['round']
     with open(Q_file(current_round), "wb") as file:
-        np.save(file, self.Q)
+        np.save(file, self.Q_old)
 
     ## Time the training and save the data
 
