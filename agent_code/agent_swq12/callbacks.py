@@ -65,21 +65,21 @@ def act(self, game_state: dict) -> str:
     
     if self.train:  self.timer_act.start()
 
-    features, feature_indices, unsorted_features = state_to_features(game_state, return_unsorted_features = True)
-    state_index               = features_to_indices(features)
+    sorted_features, sorting_indices, unsorted_features = state_to_features(game_state, return_unsorted_features = True)
+    state_index               = features_to_indices(sorted_features)
 
     if self.train:
         policy        = random_argmax_1d(self.Q_old[state_index])
-        action, label = epsilon_greedy(ACTIONS[feature_indices[policy]], epsilon)
+        action, label = epsilon_greedy(ACTIONS[sorting_indices[policy]], epsilon)
     else:
         policy = random_argmax_1d(self.model[state_index])
-        action = ACTIONS[feature_indices[policy]]
+        action = ACTIONS[sorting_indices[policy]]
         label  = "policy"
 
     # Logging
     self.logger.debug(f"act(): Round {game_state['round']}, Step {game_state['step']}:")
     self.logger.debug(f"act(): Game State: Position {game_state['self'][3]}, Unsorted Feature {unsorted_features}, Q-index {state_index}")
-    #self.logger.debug(f"act(): Symmetry: game features: {unsorted_features}")  # Add that functionality
+    self.logger.debug(f"act(): Symmetry: sorted features {sorted_features}") 
     self.logger.debug(f"act(): Performed {label} action {action}")
     
     # Timing this function

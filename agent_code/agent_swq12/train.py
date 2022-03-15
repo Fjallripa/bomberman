@@ -98,15 +98,12 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     ## new_game_state -> sorted features, 
     ## self_action    -> sorted policy, 
     ## events         -> reward
-    features        = state_to_features(new_game_state)
-    sorting_indices = np.argsort(features)   # Moved sorting here to be able to log both sorted and unsorted features.
-    sorted_features = features[sorting_indices]
+    sorted_features, sorting_indices  = state_to_features(new_game_state)
     policy          = ACTIONS.index(self_action)
-    sorted_policy   = list(sorting_indices).index(policy)   # find index of self_action, which was actually picked during training
+    sorted_policy   = list(sorting_indices).index(policy)  # find index of self_action, which was actually picked during training
     reward          = reward_from_events(self, events)   # give auxiliary rewards
     
     self.training_data.append([sorted_features, sorted_policy, reward])
-
 
     # Logging
     self.logger.debug(f"geo(): Step {new_game_state['step']}")
