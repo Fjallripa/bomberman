@@ -11,11 +11,11 @@ import numpy as np
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 
 
-model_name = "swq14_test_2"
+model_name = "swq14_debug_2"
 model_file = f"model_{model_name}.pt"
 
 # Calculating an anealing epsilon
-training_rounds        = 100   # Can't this be taken from main?
+training_rounds        = 10000   # Can't this be taken from main?
 epsilon_at_last_round  = 0.01   # Set to desired value
 epsilon_at_first_round = np.power(epsilon_at_last_round, 1 / training_rounds)  # n-th root of epsilon_at_last_round
 epsilon                = lambda round: \
@@ -79,11 +79,18 @@ def act(self, game_state: dict) -> str:
     round = game_state['round']
     eps   = epsilon(round)
     if self.train:
-        sorted_policy = random_argmax_1d(self.model[state_index])
-        policy        = sorting_indices[sorted_policy]  
-        action, label = epsilon_greedy(ACTIONS[policy], eps)
+        sorted_policy, label = epsilon_greedy(random_argmax_1d(self.model[state_index]), eps)
+        policy = sorting_indices[sorted_policy]
+        action = ACTIONS[policy]
         self.state_indices.append(state_index)
         self.sorted_policies.append(sorted_policy)
+
+        '''
+        self.unsorted_policies.append(policy) # for debugging purpose
+        self.unsorted_features.append(features)
+        self.sorted_features.append(sorted_features)
+        '''
+
     else:
         sorted_policy = random_argmax_1d(self.model[state_index])
         policy        = sorting_indices[sorted_policy]
@@ -251,7 +258,7 @@ def look_for_targets(free_space, start, targets, logger=None):
 
 def epsilon_greedy (recommended_action, epsilon):
     
-    random_action = lambda x: np.random.choice(ACTIONS[:4])  # don't wait or kill yourself
+    random_action = lambda x: np.random.choice(4)  # don't wait or kill yourself
 
 
     choice = np.random.choice([0, 1], p = [1 - epsilon, epsilon])

@@ -21,7 +21,7 @@ action_count = 4   # was previously & should be in general = len(ACTIONS) = 6; c
 alpha = 0.01   # initially set to 1
 gamma = 0.0   # initially set to 1, for now be shortsighted.
 mode = "SARSA" # "SARSA" or "Q-Learning"
-n = 1 # n-step Q-learning
+n = 3 # n-step Q-learning
 
 # Training analysis
 Q_file      = lambda x: f"logs/Q_data/Q{x}.npy"
@@ -51,6 +51,13 @@ def setup_training(self):
     self.state_indices   = []
     self.sorted_policies = []
     self.rewards         = []
+    
+    '''
+    self.unsorted_policies = [] # debugging purpose
+    self.unsorted_features = []
+    self.sorted_features = []
+    self.tracked_events = []
+    '''
 
     # Logging
     self.logger.debug("str(): Starting training by initializing Q." + '\n' * 2)
@@ -114,6 +121,7 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     self.rewards.append(reward)
     #self.training_data.append([sorted_features, sorted_policy, reward])
 
+    # self.tracked_events.append(events) # debugging purpose
 
     # Logging
     #self.logger.debug(f"geo(): Step {new_game_state['step']}")
@@ -181,12 +189,22 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     with open(f"model_{model_name}.pt", "wb") as file:
         pickle.dump(self.model, file)
 
+    ''' Debug
+    for n in range(10):
+        print(self.unsorted_features[n], self.unsorted_policies[n], self.sorted_features[n], self.sorted_policies[n], self.tracked_events[n], self.rewards[n])
+    '''
+
     # Clean up
     #self.training_data = []
     self.state_indices   = []
     self.sorted_policies = []
     self.rewards         = []
-
+    '''
+    self.unsorted_policies = [] # debugging purpose
+    self.unsorted_features = []
+    self.sorted_features = []
+    self.tracked_events = []
+    '''
 
     # Training analysis
     ## Logging
