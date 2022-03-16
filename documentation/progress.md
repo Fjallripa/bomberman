@@ -62,20 +62,21 @@ Approach: Develop a Q-learning algorithm to tackle that problem.
       Merge agents sq10 and wq10 and further improve q-learning
     * Results/Observations:
       Despite multiple updates and experimenting, the playing performance didn't improve noticably
-    1. `model_sorted-features`
-      * Idea/Aim:
-        Try out the merged agent.
-    2. `model_low-alpha`
-      * Idea/Aim:
-        Test if lowering the alpha to 0.01 improves anything.
-    3. `model_zero-gamma`
-      * Idea/Aim:
-        Test if removing the influence of V_pi improves anything. In theory the agent should now be only concerned about wether the current move directly results in a coin or punishment.
-    4. `model_round-based`
-      * Idea/Aim:
-        Tweaked the q-update to only update the Q-function after all step updates are complete instead of updating at every step.
-      * Results/Observations:
-        Besides not improving performance, we noticed that the round-wise update had the issue of only saving the latest step-update of every state-action-pair (S, a). In our setup with only actually 3 relevant states, this was a big issue.
+    * Trained Models:
+      1. `sorted-features`
+        * Idea/Aim:
+          Try out the merged agent.
+      2. `low-alpha`
+        * Idea/Aim:
+          Test if lowering the alpha to 0.01 improves anything.
+      3. `zero-gamma`
+        * Idea/Aim:
+          Test if removing the influence of V_pi improves anything. In theory the agent should now be only concerned about wether the current move directly results in a coin or punishment.
+      4. `round-based`
+        * Idea/Aim:
+          Tweaked the q-update to only update the Q-function after all step updates are complete instead of updating at every step.
+        * Results/Observations:
+          Besides not improving performance, we noticed that the round-wise update had the issue of only saving the latest step-update of every state-action-pair (S, a). In our setup with only actually 3 relevant states, this was a big issue.
 
 6. `agent_swq13`: symmetric working q-learning version 1.3
     * Idea/Aim:
@@ -87,27 +88,78 @@ Approach: Develop a Q-learning algorithm to tackle that problem.
         `analysis_train.ipynb` that displays the model's Q-matrix with context, plots training performance as coins collected per round, and offers a function to plot the training evolution of certain Q-states. Used in all models of swq13.
       * automated the analysis data collection process
         in `file_handling.ipynb`. One function call now collects and renames every needed file into the model's respective folder unter '/analysis/'
-    1. `model_better-gain`
-      * Idea/Aim:
-        Solving the issue of the last swq12 model, by averaging over all rewards of the same (S,a)
-      * Setup/Changes: 
-        Completely rebuilt the Q-update algorithm by collecting rewards the q-function by state instead of by step.
-        The Q-update now consists of a mean value of rewards + expected gains V_pi for every (S, a).
-      * Results/Observations:
-        Somewhat improved performance. The agent now hops around but frequently gets stuck in infinite loops when landing in certain states.
-    2. `model_test`
-      * Idea/Aim:
-        Tweaking the hyperparameters to see if this improves anything
-      * Setup/Changes:
-        Implemented epsilon annealing, tested for various final epsilon values, 
-        tested to lower alpha,
-        tested to set gamma to zero again
-      * Results/Observations:
-        Epsilon annealing: 
+    * Trained models:
+      1. `better-gain`
+        * Idea/Aim:
+          Solving the issue of the last swq12 model, by averaging over all rewards of the same (S,a)
+        * Setup/Changes: 
+          Completely rebuilt the Q-update algorithm by collecting rewards the q-function by state instead of by step.
+          The Q-update now consists of a mean value of rewards + expected gains V_pi for every (S, a).
+        * Results/Observations:
+          Somewhat improved performance. The agent now hops around but frequently gets stuck in infinite loops when landing in certain states.
+      2. `test`
+        * Idea/Aim:
+          Tweaking the hyperparameters to see if this improves anything
+        * Setup/Changes:
+          Implemented epsilon annealing, tested for various final epsilon values, 
+          tested to lower alpha,
+          tested to set gamma to zero again
+        * Results/Observations:
+          Epsilon annealing: 
+        
+      3. `more-targets`
+        * Idea/Aim:
+
+        * Setup/Changes:
+          
+        * Results/Observations:
+          
+      4. `train-data`
+        * Idea/Aim:
+          
+        * Setup/Changes:
+          
+        * Results/Observations:
+          
+      5. `10k`
+         * Idea/Aim:
+          
+        * Setup/Changes:
+          
+        * Results/Observations:
+          
+      6. `reproduce`
+        * Idea/Aim: 
+          Try to reproduce performance of `train-data`
+        * Setup/Changes:
+          Set epsilon_last = 0.01, alpha = 0.01, gamma = 0
+        * Results/Observations:
+          Trained as bad as other models, maybe params were different.
+      7. `reproduce2`
+        * Idea/Aim: 
+          Try again with different params
+        * Setup/Changes:
+          Set epsilon_last = 0.05, alpha = 0.1, gamma = 0
+        * Results/Observations:
+          Again super bad training. Looking at the Q-evolution, certain states seem to systematically learn the wrong action, never receiving reward for the right action.
+
+
+### Template structure
+0. `agent_template`:
+    * Idea/Aim:
       
-    3. `model_more-targets`
-    4. `model_train-data`
-    5. `model_10k`
-    
+    * Results/Observations:
+      
+    * Trivia:
+      
+    * Trained models:
+      1. `templa`
+        * Idea/Aim:
+        
+        * Setup/Changes: 
+        
+        * Results/Observations:
+        
+      2. `templb`  
 
 

@@ -1,0 +1,15 @@
+# Training parameters used
+
+# Agent
+agent = swq13
+model = reproduce2
+
+# Training environment
+scenario  = coin-heaven
+opponents = single agent
+
+# Training hyperparameters
+rounds    = 100
+epsilon   = exponential, down to 0.05
+alpha     = 0.1
+gamma     = 0
