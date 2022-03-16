@@ -18,7 +18,7 @@ action_count = 4   # was previously & should be in general = len(ACTIONS) = 6; c
 
 
 # Hyperparameters for Q-update
-alpha = 0.01   # initially set to 1
+alpha = 0.003   # initially set to 1
 gamma = 0.0   # initially set to 1, for now be shortsighted.
 
 # Training analysis

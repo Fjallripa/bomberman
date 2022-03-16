@@ -11,11 +11,11 @@ import numpy as np
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 
 
-model_name = "swq13_reproduce"
+model_name = "swq13_train-data"
 model_file = f"model_{model_name}.pt"
 
 # Calculating an anealing epsilon
-training_rounds        = 100   # Can't this be taken from main?
+training_rounds        = 10000   # Can't this be taken from main?
 epsilon_at_last_round  = 0.01   # Set to desired value
 epsilon_at_first_round = np.power(epsilon_at_last_round, 1 / training_rounds)  # n-th root of epsilon_at_last_round
 epsilon                = lambda round: \
@@ -69,7 +69,7 @@ def act(self, game_state: dict) -> str:
     """
     
     
-    if self.train:  self.timer_act.start()
+    #if self.train:  self.timer_act.start()
 
     features        = state_to_features(game_state)
     sorting_indices = np.argsort(features)   # Moved sorting here to be able to log both sorted and unsorted features.
@@ -97,10 +97,11 @@ def act(self, game_state: dict) -> str:
     self.logger.debug(f"act(): Performed {label} action {action}")
     
     # Timing this function
+    """
     if self.train: 
         act_time = self.timer_act.stop()
         self.act_times.append(act_time)
-
+    """
     return action 
 
 
