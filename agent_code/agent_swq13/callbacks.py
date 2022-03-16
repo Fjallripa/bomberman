@@ -11,12 +11,12 @@ import numpy as np
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 
 
-model_name = "swq13_reproduce"
+model_name = "swq13_reproduce2"
 model_file = f"model_{model_name}.pt"
 
 # Calculating an anealing epsilon
 training_rounds        = 100   # Can't this be taken from main?
-epsilon_at_last_round  = 0.01   # Set to desired value
+epsilon_at_last_round  = 0.05   # Set to desired value
 epsilon_at_first_round = np.power(epsilon_at_last_round, 1 / training_rounds)  # n-th root of epsilon_at_last_round
 epsilon                = lambda round: \
     np.power(epsilon_at_first_round, round)   # does exponentially decrease with training rounds.
