@@ -1,8 +1,8 @@
 # Training parameters used
 
 # Agent
-agent = swq13
-model = reproduce
+agent = swq14
+model = test
 
 # Training environment
 scenario  = coin-heaven

@@ -1,15 +1,15 @@
 # Training parameters used
 
 # Agent
-agent = swq13
-model = reproduce
+agent = swq14
+model = test_2
 
 # Training environment
 scenario  = coin-heaven
 opponents = single agent
 
 # Training hyperparameters
-mode = 1-step "Q-learning"
+mode = 1-step "SARSA"
 rounds    = 100
 epsilon   = exponential, down to 0.01
 alpha     = 0.01

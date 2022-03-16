@@ -20,6 +20,8 @@ action_count = 4   # was previously & should be in general = len(ACTIONS) = 6; c
 # Hyperparameters for Q-update
 alpha = 0.01   # initially set to 1
 gamma = 0.0   # initially set to 1, for now be shortsighted.
+mode = "SARSA" # "SARSA" or "Q-Learning"
+n = 1 # n-step Q-learning
 
 # Training analysis
 Q_file      = lambda x: f"logs/Q_data/Q{x}.npy"
@@ -163,7 +165,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         
         # Update gain for (S, a)
         sum_of_gain_per_Sa[state_index, sorted_policy] \
-            += Q_update(self, step, n = 1, mode = "Q-learning") # change learning mode (n-step, Q-learning vs. SARSA) here
+            += Q_update(self, step)
         number_of_Sa_steps[state_index, sorted_policy] \
             += 1
 
@@ -252,7 +254,7 @@ def reward_from_events(self, events: List[str]) -> int:
     
     return reward_sum
 
-def Q_update(self, t, mode = "Q-Learning", n = 1,  gamma = gamma):
+def Q_update(self, t, mode = mode, n = n,  gamma = gamma):
     """
     Computes the new value during Q-learning.
 
