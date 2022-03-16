@@ -15,8 +15,8 @@ model_name = "swq13_train-data"
 model_file = f"model_{model_name}.pt"
 
 # Calculating an anealing epsilon
-training_rounds        = 100   # Can't this be taken from main?
-epsilon_at_last_round  = 0.05   # Set to desired value
+training_rounds        = 10000   # Can't this be taken from main?
+epsilon_at_last_round  = 0.01   # Set to desired value
 epsilon_at_first_round = np.power(epsilon_at_last_round, 1 / training_rounds)  # n-th root of epsilon_at_last_round
 epsilon                = lambda round: \
     np.power(epsilon_at_first_round, round)   # does exponentially decrease with training rounds.
@@ -141,7 +141,7 @@ def state_to_features(game_state: dict) -> np.array:
     free_space = game_state['field'] == 0 # Boolean numpy array. True for free tiles and False for Crates & Walls
     agent_x, agent_y = game_state['self'][3] # Agent position as coordinates 
     coin_directions = look_for_targets(free_space, (agent_x, agent_y), game_state['coins']) # neighbouring field closest to closest coin
-    print(f"{str(game_state['step']):3}: {str(game_state['self'][3]):8} -> {coin_directions}")
+    #print(f"{str(game_state['step']):3}: {str(game_state['self'][3]):8} -> {coin_directions}")
 
     neighbours = [(agent_x, agent_y - 1), (agent_x + 1, agent_y), 
                   (agent_x, agent_y + 1), (agent_x - 1, agent_y)]   # UP, RIGHT, DOWN, LEFT from (x, y)
