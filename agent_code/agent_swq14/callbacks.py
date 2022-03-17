@@ -11,7 +11,7 @@ import numpy as np
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 
 
-model_name = "swq14_debug_3"
+model_name = "swq14_sarsa"
 model_file = f"model_{model_name}.pt"
 
 # Calculating an anealing epsilon

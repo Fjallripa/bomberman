@@ -14,14 +14,14 @@ from .callbacks import ACTIONS, model_name
 
 # Constants 
 state_count  = 15   # number of possible feature states, currently 15 considering order-invariance
-action_count = 4   # was previously & should be in general = len(ACTIONS) = 6; changed for task 1; shouldn't be changed without changing feature design & act()
+action_count = 4    # was previously & should be in general = len(ACTIONS) = 6; changed for task 1; shouldn't be changed without changing feature design & act()
 
 
 # Hyperparameters for Q-update
-alpha = 0.01   # initially set to 1
-gamma = 0.0   # initially set to 1, for now be shortsighted.
-mode = "SARSA" # "SARSA" or "Q-Learning"
-n = 3 # n-step Q-learning
+alpha = 0.01           # initially set to 1
+gamma = 0.5            # initially set to 1, for now be shortsighted.
+mode  = "SARSA"   # "SARSA" or "Q-Learning"
+n     = 1              # n-step Q-learning
 
 # Training analysis
 Q_file      = lambda x: f"logs/Q_data/Q{x}.npy"

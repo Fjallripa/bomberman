@@ -7,6 +7,10 @@ from fallbacks import pygame
 COLS = 17
 ROWS = 17
 SCENARIOS = {
+    "scrooge-mcducks-vault": {
+        "CRATE_DENSITY": 0,
+        "COIN_COUNT": 100
+    },
     "coin-heaven": {
         "CRATE_DENSITY": 0,
         "COIN_COUNT": 50
