@@ -275,7 +275,7 @@ class GenericWorld:
         for a in self.agents:
             a.note_stat("score", a.score)
             a.note_stat("rounds")
-        self.round_statistics[self.round_id] = {
+        self.round_statistics[self.round_id] = {"round": self.round,
             "steps": self.step,
             **{key: sum(a.statistics[key] for a in self.agents) for key in ["coins", "kills", "suicides"]}
         }
