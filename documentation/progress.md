@@ -43,7 +43,7 @@ Approach: Develop a Q-learning algorithm to tackle that problem.
     * Idea/Aim: 
       Reduce the size of the Q-matrix by exploiting symmetries in the feature design.
     * Results/Observations:
-      by rewriting the state_to_features() function, the number of possible game states in Q got reduced from 81 to 15.
+      by rewriting the state_to_features() function, the number of possible game states in Q were reduced from 81 to 15.
       The performance didn't improve noticably.
     * Trivia: 
       developed in new branch 'Symmetry-development' from agent_vq11
@@ -142,6 +142,15 @@ Approach: Develop a Q-learning algorithm to tackle that problem.
           Set epsilon_last = 0.05, alpha = 0.1, gamma = 0
         * Results/Observations:
           Again super bad training. Looking at the Q-evolution, certain states seem to systematically learn the wrong action, never receiving reward for the right action.
+
+
+7. `agent_swq14`:
+    * Idea/Aim:
+      Debug agent_swq13
+    * Results/Observations:
+      Found bug in appending actions to training data before using greedy epsilon and in analysis tool due to order of storing rounds in save_stats.
+      Final result: practically optimal coin seeker (coin seeking rate = ca. 0.4), and Q-convergence after 1-10k rounds.
+ 
 
 
 ### Template structure
