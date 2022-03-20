@@ -105,32 +105,30 @@ Approach: Develop a Q-learning algorithm to tackle that problem.
           tested to lower alpha,
           tested to set gamma to zero again
         * Results/Observations:
-          Epsilon annealing: 
-        
+          Epsilon annealing: Observed reduction in training performance as training progressed. Suggests systematic error in how agent learns.
+          Lower alpha and gamma to zero didn't seem to have any substantial impact on the learning here.
       3. `more-targets`
-        * Idea/Aim:
-
-        * Setup/Changes:
-          
-        * Results/Observations:
-          
+        * Idea/Aim: 
+          Changed look_for_targets() so that it's capable of showing more than just one direction with closest coin. Hopefully these changes make the agent better distinguish between good and not so good directions.
+        * Results/Observations: 
+          No performance improvements here either. So this wasn't the issue. However, more game_states got utilized in the Q-matrix, not just 3 as before.
       4. `train-data`
         * Idea/Aim:
-          
+          Discovered bug in the collection of the training data where the agent got trained upon a state one step later than the one it acted upon. Solving this should fix the longstanding training issue.
         * Setup/Changes:
-          
+          Normal 100 rounds training
         * Results/Observations:
-          
+          This did actually improve training!!! Now, agent after about 20 rounds consistently collects all four coins. However, it's not perfect yet and there's a certain state where it still gets stuck in a loop.
       5. `10k`
-         * Idea/Aim:
-          
+        * Idea/Aim: 
+          Verify the results of `train_data` by doing a very long training.
         * Setup/Changes:
-          
+          10,000 rounds training, same setup as in `train_data`.
         * Results/Observations:
-          
+          Sadly, after quick increase in performance with training round, it decreased again, resulting in an agent as bad as those before. Also the test performance of `train_data` is quite poor. Was it relying on random movements during training to get it unstuck?
       6. `reproduce`
         * Idea/Aim: 
-          Try to reproduce performance of `train-data`
+          Try to reproduce performance of `train-data`. 
         * Setup/Changes:
           Set epsilon_last = 0.01, alpha = 0.01, gamma = 0
         * Results/Observations:
@@ -144,13 +142,21 @@ Approach: Develop a Q-learning algorithm to tackle that problem.
           Again super bad training. Looking at the Q-evolution, certain states seem to systematically learn the wrong action, never receiving reward for the right action.
 
 
-7. `agent_swq14`:
+7. `agent_swq14`: symmetric working q-learning version 1.4
     * Idea/Aim:
-      Debug agent_swq13
+      Debug agent_swq13. There seem to be systematic issues in its training process.
     * Results/Observations:
       Found bug in appending actions to training data before using greedy epsilon and in analysis tool due to order of storing rounds in save_stats.
       Final result: practically optimal coin seeker (coin seeking rate = ca. 0.4), and Q-convergence after 1-10k rounds.
- 
+
+8. `agent_m1`: miner version 1
+    * Idea/Aim:
+      Expand features to be able train a crate-bombing coin-miner. Adapt Q-Learning and rest to fit the new features and see how well the agent can train on those and what issues arise.
+    * Results/Observations:
+      
+    * Trivia:
+      
+    * Trained models:
 
 
 ### Template structure
