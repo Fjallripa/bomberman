@@ -1,0 +1,6 @@
+Command: python main.py play --n-rounds 1 --no-gui --agents agent_submit peaceful_agent peaceful_agent peaceful_agent --save-stats results/result.json --save-replay --match-name Test 2
+
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00,  1.44it/s]100%|██████████| 1/1 [00:00<00:00,  1.44it/s]
+
+
+Return code: 0
