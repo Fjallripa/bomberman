@@ -7,7 +7,7 @@ import pickle
 import random
 import numpy as np
 
-model_name = "m1_test"
+model_name = "m1_10k-no-gamma"
 model_file = f"model_{model_name}.pt"
 
 
@@ -40,7 +40,7 @@ for x in range(1, COLS-1):
 
 
 # Calculating an anealing epsilon
-training_rounds        = 1   # Can't this be taken from main?
+training_rounds        = 10_000   # Can't this be taken from main?
 epsilon_at_last_round  = 0.01   # Set to desired value
 epsilon_at_first_round = np.power(epsilon_at_last_round, 1 / training_rounds)  # n-th root of epsilon_at_last_round
 epsilon                = lambda round: \
@@ -355,7 +355,7 @@ def select_nearest (positions, distance_map):
     if len(positions) > 0:
         positions_array   = np.array(positions)
         positions_tuple   = tuple(positions_array.T)
-        min_distance_mask = distance_map[positions_tuple] == np.min(distance_map[positions_tuple])
+        min_distance_mask = distance_map[positions_tuple] == np.amin(distance_map[positions_tuple])
         nearest_positions = positions_array[min_distance_mask]
     else:
         nearest_positions = np.array([])    
