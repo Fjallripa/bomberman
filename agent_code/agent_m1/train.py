@@ -13,8 +13,10 @@ from .callbacks import ACTIONS, model_name
 
 
 # Constants 
-state_count  = 15   # number of possible feature states, currently 15 considering order-invariance
-action_count = 4   # was previously & should be in general = len(ACTIONS) = 6; changed for task 1; shouldn't be changed without changing feature design & act()
+state_count_axis_1  = 15   # number of possible feature states for first / second / third Q axis, currently 15 considering order-invariance
+state_count_axis_2  = 3    # OWN POSITION
+state_count_axis_3  = 2    # MODI
+action_count = len(ACTIONS) # = 6
 
 
 # Hyperparameters for Q-update
@@ -45,7 +47,7 @@ def setup_training(self):
 
 
     # Initialize Q
-    self.model = self.Q = np.zeros((state_count, action_count))   # initial guess for Q, for now just zeros
+    self.model = self.Q = np.zeros((state_count_axis_1, state_count_axis_2, state_count_axis_3, action_count))   # initial guess for Q, for now just zeros
     
     #self.training_data = []   # [[features, action_index, reward], ...]  
     self.state_indices   = []
@@ -168,13 +170,13 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     step_count = last_game_state['step']
     for step in range(step_count):
         # Calculate the state-action pair (S, a)
-        state_index   = self.state_indices[step]
+        state_index_1, state_index_2, state_index_3  = self.state_indices[step]
         sorted_policy = self.sorted_policies[step]
         
         # Update gain for (S, a)
-        sum_of_gain_per_Sa[state_index, sorted_policy] \
+        sum_of_gain_per_Sa[state_index_1, state_index_2, state_index_3, sorted_policy] \
             += Q_update(self, step)
-        number_of_Sa_steps[state_index, sorted_policy] \
+        number_of_Sa_steps[state_index_1, state_index_2, state_index_3, sorted_policy] \
             += 1
 
     # Average estimated gain per (S, a)
@@ -260,7 +262,9 @@ def reward_from_events(self, events: List[str]) -> int:
     # Auxiliary Rewards for Task 1
     game_rewards = {
         e.COIN_COLLECTED: 5,
-        e.INVALID_ACTION: -1
+        e.INVALID_ACTION: -1,
+        e.KILLED_SELF: -1,
+        e.OPPONENT_ELIMINATED: 5
     }
     
     reward_sum = 0
@@ -292,14 +296,14 @@ def Q_update(self, t, mode = mode, n = n,  gamma = gamma):
     v = 0 # initialize just due to a assignment - reference bug otherwise
 
     # Approximate Q after next n steps
-    state_next_n_steps = self.state_indices[t_plus_n]
+    state_next_n_steps_1, state__next_n_steps_2, state_next_n_steps_3 = self.state_indices[t_plus_n]
 
     if mode == "Q-Learning":
-        v = np.amax(self.Q[state_next_n_steps])
+        v = np.amax(self.Q[state_next_n_steps_1, state__next_n_steps_2, state_next_n_steps_3])
     
     elif mode == "SARSA":
         action_next_n_steps = self.sorted_policies[t_plus_n]
-        v = self.Q[state_next_n_steps, action_next_n_steps]
+        v = self.Q[state_next_n_steps_1, state__next_n_steps_2, state_next_n_steps_3, action_next_n_steps]
     
     # Compute Reward Sum for next n steps
     reward_sum = 0

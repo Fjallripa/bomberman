@@ -1,0 +1,21 @@
+{
+    "by_agent": {
+        "agent_swq12": {
+            "coins": 16,
+            "invalid": 151,
+            "moves": 249,
+            "rounds": 1,
+            "score": 16,
+            "steps": 400,
+            "time": 0.4339747428894043
+        }
+    },
+    "by_round": {
+        "Round 01 (2022-03-15 14-58-28)": {
+            "coins": 16,
+            "kills": 0,
+            "steps": 400,
+            "suicides": 0
+        }
+    }
+}

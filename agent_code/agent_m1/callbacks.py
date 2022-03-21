@@ -11,7 +11,7 @@ import numpy as np
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 
 
-model_name = "test"
+model_name = "m1_test"
 model_file = f"model_{model_name}.pt"
 
 # Calculating an anealing epsilon
@@ -71,18 +71,19 @@ def act(self, game_state: dict) -> str:
     
     if self.train:  self.timer_act.start()
 
-    features        = state_to_features(game_state)
-    sorting_indices = np.argsort(features)   # Moved sorting here to be able to log both sorted and unsorted features.
-    sorted_features = features[sorting_indices]
-    state_index     = features_to_indices(sorted_features)
+    features = state_to_features(game_state)
+    direction_features = features[:4]
+    sorting_indices = np.argsort(direction_features)   # Moved sorting here to be able to log both sorted and unsorted features.
+    sorted_direction_features = direction_features[sorting_indices]
+    state_index_1, state_index_2, state_index_3 = features_to_indices(sorted_direction_features), features[4], features[5]
 
     round = game_state['round']
     eps   = epsilon(round)
     if self.train:
-        sorted_policy, label = epsilon_greedy(random_argmax_1d(self.model[state_index]), eps)
-        policy = sorting_indices[sorted_policy]
+        sorted_policy, label = epsilon_greedy(random_argmax_1d(self.model[state_index_1, state_index_2, state_index_3]), eps)
+        policy = np.append(sorting_indices, np.array([4,5]))[sorted_policy]
         action = ACTIONS[policy]
-        self.state_indices.append(state_index)
+        self.state_indices.append([state_index_1, state_index_2, state_index_3])
         self.sorted_policies.append(sorted_policy)
 
         '''
@@ -92,15 +93,15 @@ def act(self, game_state: dict) -> str:
         '''
 
     else:
-        sorted_policy = random_argmax_1d(self.model[state_index])
-        policy        = sorting_indices[sorted_policy]
+        sorted_policy = random_argmax_1d(self.model[state_index_1, state_index_2, state_index_3])
+        policy        = np.append(sorting_indices, np.array([4,5]))[sorted_policy]
         action        = ACTIONS[policy]
         label         = "policy"
 
     # Logging
     self.logger.debug(f"act(): Round {round}, Step {game_state['step']}:")
     self.logger.debug(f"act(): Game State: Position {game_state['self'][3]}, Features {features}, epsilon {eps}")
-    self.logger.debug(f"act(): Symmetry: Sorted features {sorted_features}, Q-index {state_index}, Sorted policy {sorted_policy}")
+    self.logger.debug(f"act(): Symmetry: Sorted features {np.append(sorted_direction_features, features[4:])}, Q-index {[state_index_1, state_index_2, state_index_3]}, Sorted policy {sorted_policy}")
     self.logger.debug(f"act(): Performed {label} action {action}")
     
     # Timing this function
@@ -166,7 +167,7 @@ def state_to_features(game_state: dict) -> np.array:
     2. indices of represented feature
     '''
 
-    return X
+    return np.concatenate((X, np.array([0,0])))
     '''
     X_unique =  np.sort(X)
     X_indices = np.argsort(X)
@@ -258,7 +259,7 @@ def look_for_targets(free_space, start, targets, logger=None):
 
 def epsilon_greedy (recommended_action, epsilon):
     
-    random_action = lambda x: np.random.choice(4)  # don't wait or kill yourself
+    random_action = lambda x: np.random.choice(6) 
 
 
     choice = np.random.choice([0, 1], p = [1 - epsilon, epsilon])
