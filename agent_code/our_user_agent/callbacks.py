@@ -1,7 +1,6 @@
+import pickle
 
-import numpy as np
-
-game_state_file = lambda x: f'logs/game_state{x}.npy'
+game_state_file = lambda x: f'logs/game_state{x}.pkl'
 
 def setup(self):
     pass
@@ -9,7 +8,8 @@ def setup(self):
 def act(self, game_state: dict):
     # save game_state
     step = game_state['step']
-    np.save(game_state_file(step), game_state)
+    with open(game_state_file(step), "wb") as file:
+        pickle.dump(game_state, file)
 
     self.logger.info('Pick action according to pressed key')
     print(repr(game_state['field']))
