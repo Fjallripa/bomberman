@@ -1,6 +1,6 @@
 import pickle
 
-game_state_file = lambda x: f'logs/game_state{x}.pkl'
+game_state_file = lambda x: f'logs/game_states/game_state_{x}.pkl'
 
 def setup(self):
     pass

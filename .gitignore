@@ -118,3 +118,4 @@ results/
 **/logs/timing/*.csv
 **/logs/*.log
 agent_code/agent_*/model_*.pt
+**/logs/game_states/game_state_*.pkl
