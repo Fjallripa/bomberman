@@ -7,12 +7,37 @@ import pickle
 import random
 import numpy as np
 
-
-ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
-
-
 model_name = "m1_test"
 model_file = f"model_{model_name}.pt"
+
+
+# Global Constants
+ACTIONS            = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
+DIRECTIONS         = np.array([(0, -1), (1, 0), (0, 1), (-1, 0)])   # UP, RIGHT, DOWN, LEFT
+DEFAULT_DISTANCE   = 99
+BOMB_COOLDOWN_TIME = 7
+COLS = ROWS        = 17
+BLAST              = np.array([-3, -2, -1, 1, 2, 3])
+
+# Calculate constant BOMB_MASK one time
+BOMB_MASK = np.full((COLS, ROWS, COLS, ROWS), False)
+
+x_inside = lambda x: x > 0 and x < COLS-1
+y_inside = lambda y: y > 0 and y < ROWS-1
+
+for x in range(1, COLS-1):
+        for y in range(1, ROWS-1):
+            if (x % 2 == 1 or y % 2 == 1):
+                explosion_spots = [(x, y)]
+                if x % 2 == 1:
+                    explosion_spots += [(x, y + b) for b in BLAST  if y_inside(y + b)]
+                if y % 2 == 1:
+                    explosion_spots += [(x + b, y) for b in BLAST  if x_inside(x + b)]
+                
+                explosion_spots = tuple(np.array(explosion_spots).T)
+                BOMB_MASK[(x, y)][explosion_spots] \
+                                = True
+
 
 # Calculating an anealing epsilon
 training_rounds        = 1   # Can't this be taken from main?
@@ -137,124 +162,260 @@ def state_to_features(game_state: dict) -> np.array:
     if game_state is None:
         return None
 
-    ### design features for Task 1 ###
-    """
-    np.array where each component corresponds to on neighbour field
-    = 0 if wall or crate
-    = 1 if free
-    = 2 if free and (one) nearest field to nearest coin
-    """
-    X = np.zeros(4, dtype = int) # hand-crafted feature vector
+
+    # 0. relevant game_state info
+    own_position      = game_state['self'][3]
+    crate_map         = game_state['field']
+    collectable_coins = game_state['coins']
+    bombs             = game_state['bombs']
+    explosion_map     = game_state['explosion_map']
+
+    neighbors = own_position + DIRECTIONS
+
     
-    free_space = game_state['field'] == 0 # Boolean numpy array. True for free tiles and False for Crates & Walls
-    agent_x, agent_y = game_state['self'][3] # Agent position as coordinates 
-    coin_directions = look_for_targets(free_space, (agent_x, agent_y), game_state['coins']) # neighbouring field closest to closest coin
-    #print(f"{str(game_state['step']):3}: {str(game_state['self'][3]):8} -> {coin_directions}")
+    # 1. Calculate proximity map
+    distance_map, reachability_map, direction_map = proximity_map(own_position, crate_map)
 
-    neighbours = [(agent_x, agent_y - 1), (agent_x + 1, agent_y), 
-                  (agent_x, agent_y + 1), (agent_x - 1, agent_y)]   # UP, RIGHT, DOWN, LEFT from (x, y)
 
-    for j, neighbour in enumerate(neighbours):
-        if neighbour in coin_directions: 
-            X[j] = 2
-        elif free_space[neighbour[0], neighbour[1]]:
-            X[j] = 1
-    
-    ### design symmetry transformation for Task 1 ###
-    '''
-    List of..
-    1. unique representative feature of set of unordered features
-    2. indices of represented feature
-    '''
+    # 2. Check for danger and lethal danger
+    going_is_dumb   = np.array([( (not reachability_map[(x,y)]) or explosion_map[(x,y)] ) for [x,y] in neighbors])
+    waiting_is_dumb = False
+    bombing_is_dumb = False
+    if not game_state['self'][2]: 
+        bombing_is_dumb = True
 
-    return np.concatenate((X, np.array([0,0])))
-    '''
-    X_unique =  np.sort(X)
-    X_indices = np.argsort(X)
+    for (bomb_position, bomb_timer) in bombs:
+        steps_until_explosion = bomb_timer + 1
 
-    return([X_unique, X_indices]) 
-    '''
+        if waiting_is_dumb == False:
+            no_future_explosion_mask = np.logical_not(BOMB_MASK[bomb_position])
+            rescue_distances = distance_map[reachability_map & no_future_explosion_mask] # improve by including explosions
+            minimal_rescue_distance = DEFAULT_DISTANCE if (rescue_distances.size == 0) else np.amin(rescue_distances)
+            if steps_until_explosion <= minimal_rescue_distance:
+                waiting_is_dumb = True
+                bombing_is_dumb = True
 
-def look_for_targets(free_space, start, targets, logger=None):
-    """
-    Find direction of closest target that can be reached via free tiles.
+        safe_directions = np.amax(direction_map[reachability_map & no_future_explosion_mask & (distance_map <= steps_until_explosion)], axis = 0, initial = False)
+        going_is_dumb[np.logical_not(safe_directions)] = True
 
-    Performs a breadth-first search of the reachable free tiles until a target is encountered.
-    If no target can be reached, the path that takes the agent closest to any target is chosen.
-
-    Args:
-        free_space: Boolean numpy array. True for free tiles and False for obstacles.
-        start: the coordinate from which to begin the search.
-        targets: list or array holding the coordinates of all target tiles.
-        logger: optional logger object for debugging.
-    Returns:
-        coordinate of first step towards closest target or towards tile closest to any target.
-    """
+    if bombing_is_dumb == False:
+        no_future_explosion_mask = np.logical_not(BOMB_MASK[own_position])
+        rescue_distances = distance_map[reachability_map & no_future_explosion_mask] # improve by including explosions
+        minimal_rescue_distance = DEFAULT_DISTANCE if (rescue_distances.size == 0) else np.amin(rescue_distances) 
+        if minimal_rescue_distance >= 4:
+                bombing_is_dumb = True
     
     
-    if len(targets) == 0: return []
+    # 3. Check game mode
+    reachable_coins = select_reachable(collectable_coins, reachability_map)
+        
+    if len(reachable_coins) > 0:
+        mode = 0
+    else:
+        mode = 1
 
-    frontier    = [start]         # tree leaves
-    parent_dict = {start: start}  # branching points
-    dist_so_far = {start: 0}      # branch lengths
-    best_ones   = []
-    next_best   = []   # If no coin is reachable
-    best_dist   = np.sum(np.abs(np.subtract(targets, start)), axis=1).min()
-    found_one   = False
+ 
+    # 4. Compute goal direction
+    if mode == 0:
+        best_coins      = select_nearest(reachable_coins, distance_map)
+        goals           = make_goals(best_coins, direction_map, own_position)
 
-    while len(frontier) > 0:   # While there still are reachable tiles
+    if mode == 1:
+        crates_destroyed = crate_destruction_map(crate_map, bombs)
+        best_crates      = best_crates_to_bomb(distance_map, crates_destroyed)
+        goals            = make_goals(best_crates, direction_map, own_position)
+
+
+    # 5. Assemble feature array
+    features = np.full(6, 1)
+    
+    # Directions (f1 - f4)
+    for i in range(4):
+        neighbor = tuple(np.array(own_position) + DIRECTIONS[i])
+        if going_is_dumb[i]:
+            features[i] = 0
+        elif goals[i]:
+            features[i] = 2
+
+    # Own spot (f5)
+    if waiting_is_dumb:
+        features[4] = 0
+    elif goals[4]:   # own spot is a goal
+        features[4] = 2
+        
+    # Mode (f6)
+    features[5] = mode
+
+
+    return features
+
+
+
+def proximity_map (own_position, game_field):
+    """
+    calculates three values for each tile of the game field:
+    1. travel time aka. distance from own position
+    2. if tile is reachable from own position or blocked
+    3. in which directions one can initially go to reach that tile as quick as possible
+
+    Arguments
+    ---------
+    own_position : tuple (x, y)
+        with x and y being current coordinates coordinates of the agent 
+        on the game field. Thus 0 < x < COLS-1, 0 < y < ROWS-1.
+    game_field   : np.array, shape = (COLS, ROWS)
+        = game_state['field']
+
+    Returns
+    -------
+    travel_time_map         : np.array, shape like game_field, dtype = int
+        Reachable tiles have the value of the number of steps it takes to move to them 
+        from own_position.
+        Unreachable tiles have the value of DEFAULT_TRAVEL_TIME which is much higher than 
+        any reachable time.
+    reachable_map           : np.array, shape like game_field, dtype = bool
+        A boolean mask of travel_time_map that labels reachable tiles as True and 
+        unreachable ones as False.
+    original_directions_map : np.array, shape = (COLS, ROWS, 4), dtype = bool
+        A map of the game_field that holds a 4-element boolean array for every tile.
+        Values of the tile's array correspond to the 4 directions UP, RIGHT, DOWN, LEFT 
+        which you might from own_position to reach the tile. Those direction which lead you 
+        to reach the tile the fastest are marked True, the others False.
+        For example, if you can reach a tile the fastest by either going UP or RIGHT at the step
+        then its array will look like this [TRUE, TRUE, FALSE, FALSE].
+        This map will be important to quickly find the best direction towards coins, crates,
+        opponents and more.
+    """
+
+
+    # Setup of initial values
+    distance_map  = np.full_like(game_field, DEFAULT_DISTANCE)
+    direction_map = np.full((*game_field.shape, 4), False)
+
+    distance_map[own_position] = 0
+    for i, dir in enumerate(DIRECTIONS):
+        neighbor = tuple(dir + np.array(own_position))
+        if game_field[neighbor] == 0:   # If neighbor is a free field
+            direction_map[neighbor][i] = True
+    
+
+    # Breadth first search for proximity values to all reachable spots
+    frontier = [own_position]
+    while len(frontier) > 0:
         current = frontier.pop(0)
         
-        # Find distance from current position to all targets, track closest
-        d = np.sum(np.abs(np.subtract(targets, current)), axis=1).min()
-        current_dist = d + dist_so_far[current]
-        if d == 0:   # In case there is a reachable coin, stop only if you have found a path to it.
-            # Found path to a target's exact position, mission accomplished!
-            best_ones.append(current)
-            best_dist = current_dist
-            found_one = True
-        elif current_dist == best_dist:   # In case no coin is reachable, find reachable tile closest to closest coin.
-            next_best.append(current)   
-        elif current_dist < best_dist:
-            next_best = [current]
-            best_dist = current_dist
-        
-        if found_one and dist_so_far[current] >= best_dist:   # If one target has already been found and this tile doesn't have a target, forget about it.
-            # Forget about current tile
-            continue    
-        else:   # else expand the frontier by adding neighbors        
-            # Add unexplored free neighboring tiles to the queue in a random order
-            x, y       = current
-            directions = [(x, y - 1), (x + 1, y), (x, y + 1), (x - 1, y)]   # UP, RIGHT, DOWN, LEFT from (x, y)
-            neighbors  = [(x_dir, y_dir)  for (x_dir, y_dir) in directions  if free_space[x_dir, y_dir]]
-            random.shuffle(neighbors)
-            for neighbor in neighbors:
-                if neighbor not in parent_dict:
+        for dir in DIRECTIONS:
+            neighbor = tuple(dir + np.array(current))
+            
+            # Update travel time to `neighbor` field
+            if game_field[neighbor] == 0:   # If neighbor is a free field
+                time = distance_map[current] + 1
+                if distance_map[neighbor] > time:
+                    distance_map[neighbor] = time
                     frontier.append(neighbor)
-                    parent_dict[neighbor] = current
-                    dist_so_far[neighbor] = dist_so_far[current] + 1
+                    
+                    # Update original direction for `neighbor` field
+                    if time > 1:
+                        direction_map[neighbor] = direction_map[current]
+                        
+                # Combine orginial directions if travel times are equal
+                elif distance_map[neighbor] == time:
+                    direction_map[neighbor] = np.logical_or(
+                        direction_map[neighbor], direction_map[current])
+
+
+    # Derivation of reachability_map
+    reachability_map = distance_map != DEFAULT_DISTANCE
+
+
+    return distance_map, reachability_map, direction_map
+
+
+
+def select_reachable (positions, reachability_map):
+    """
+    """
+
+    if len(positions) > 0:
+        positions_array     = np.array(positions)
+        positions_tuple     = tuple(positions_array.T)
+        reachable_mask      = reachability_map[positions_tuple]
+        reachable_positions = positions_array[reachable_mask] 
+    else:
+        reachable_positions = np.array(positions)
+
+    return reachable_positions
+
+
+
+def select_nearest (positions, distance_map):
+    """
+    """
+
+    if len(positions) > 0:
+        positions_array   = np.array(positions)
+        positions_tuple   = tuple(positions_array.T)
+        min_distance_mask = distance_map[positions_tuple] == np.min(distance_map[positions_tuple])
+        nearest_positions = positions_array[min_distance_mask]
+    else:
+        nearest_positions = np.array([])    
     
+    return nearest_positions
+
+
+
+def make_goals (positions, direction_map, own_position):
+    """
+    """
+
+    # Direction goals
+    goals = np.full(5, False)
+    if len(positions) > 0:
+        positions_tuple  = tuple(positions.T)
+        goal_directions  = direction_map[positions_tuple]
+        goals[:4]        = np.any(goal_directions, axis = 0)
+        
+        # Check if there's a goal on the own_position
+        goal_on_own_spot = (np.array(own_position) == positions).all(axis = 1).any()   # numpy-speak for "own_position in position"
+        goals[4]         = goal_on_own_spot
     
-    if logger: logger.debug(f'Suitable target(s) found at {best_ones}')
+    return goals
+
+
+
+def crate_destruction_map (crate_map, bombs):
+    """
+    """
+
+    if len(bombs) > 0:
+        bomb_array       = np.array([bomb[0] for bomb in bombs])   # Bomb positions
+        bomb_tuple       = tuple(bomb_array.T)
+        explosion_zones  = np.any(BOMB_MASK[bomb_tuple], axis = 0)   # All fields that will be destroyed due to the current bombs.
+        unexploded_zones = np.logical_not(explosion_zones)   # All fields that will be unharmed by the current bombs
+    else:
+        unexploded_zones = np.full_like(crate_map, True)
     
-    # Determine the first step (best direction(s)) towards the best found target tile(s)
-    best = best_ones  if found_one  else  next_best
-    directions = []
-    while len(best) > 0:
-        current = best.pop(0)
-        parent = parent_dict[current]
-        if parent == start:
-            if current not in directions:  directions.append(current)
-        elif parent not in best:
-            best.append(parent)
-    return directions
-    '''
-    for current in best:
-        while parent_dict[current] != start:
-            current = parent_dict[current]
-        if current not in directions:  directions.append(current)
-    '''
-  
+    crate_mask            = crate_map == 1   # Only show the crate positions
+    crates_remaining_mask = np.logical_and(crate_mask, unexploded_zones)
+    number_of_crates_destroyed_map \
+                          = np.sum(np.logical_and(crates_remaining_mask, BOMB_MASK), axis = (-2, -1))
+    
+    return number_of_crates_destroyed_map
+
+
+
+def best_crates_to_bomb (distance_map, number_of_crates_destroyed_map):
+    """
+    """    
+    
+    total_time_map        = distance_map + BOMB_COOLDOWN_TIME
+    destruction_speed_map = number_of_crates_destroyed_map / total_time_map
+    
+    best_crates_mask = np.isclose(destruction_speed_map, np.max(destruction_speed_map))
+    best_crates      = np.array(np.where(best_crates_mask)).T
+    
+    return best_crates
+
 
 
 def epsilon_greedy (recommended_action, epsilon):
