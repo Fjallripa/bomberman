@@ -16,14 +16,14 @@ from .callbacks import ACTIONS, model_name
 state_count_axis_1  = 15   # number of possible feature states for first / second / third Q axis, currently 15 considering order-invariance
 state_count_axis_2  = 3    # OWN POSITION
 state_count_axis_3  = 2    # MODI
-action_count = len(ACTIONS) # = 6
+action_count        = len(ACTIONS)   # = 6
 
 
 # Hyperparameters for Q-update
-alpha = 0.1   # initially set to 1
-gamma = 1   # initially set to 1, for now be shortsighted.
-mode = "SARSA" # "SARSA" or "Q-Learning"
-n = 5 # n-step Q-learning
+alpha = 0.1       # initially set to 1
+gamma = 1         # initially set to 1, for now be shortsighted.
+mode  = "SARSA"   # "SARSA" or "Q-Learning"
+n     = 5         # n-step Q-learning
 
 # Training analysis
 Q_file      = lambda x: f"logs/Q_data/Q{x}.npy"

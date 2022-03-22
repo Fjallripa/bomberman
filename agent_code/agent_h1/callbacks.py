@@ -7,7 +7,7 @@ import pickle
 import random
 import numpy as np
 
-model_name = "m1_small-fix"
+model_name = "h1"
 model_file = f"model_{model_name}.pt"
 
 
