@@ -7,14 +7,14 @@ import pickle
 import random
 import numpy as np
 
-model_name = "m1_test"
+model_name = "m1_10k-no-gamma"
 model_file = f"model_{model_name}.pt"
 
 
 # Global Constants
 ACTIONS            = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 DIRECTIONS         = np.array([(0, -1), (1, 0), (0, 1), (-1, 0)])   # UP, RIGHT, DOWN, LEFT
-DEFAULT_DISTANCE   = 99
+DEFAULT_DISTANCE   = 1000
 BOMB_COOLDOWN_TIME = 7
 COLS = ROWS        = 17
 BLAST              = np.array([-3, -2, -1, 1, 2, 3])
@@ -40,7 +40,7 @@ for x in range(1, COLS-1):
 
 
 # Calculating an anealing epsilon
-training_rounds        = 1   # Can't this be taken from main?
+training_rounds        = 10_000   # Can't this be taken from main?
 epsilon_at_last_round  = 0.01   # Set to desired value
 epsilon_at_first_round = np.power(epsilon_at_last_round, 1 / training_rounds)  # n-th root of epsilon_at_last_round
 epsilon                = lambda round: \
@@ -222,8 +222,9 @@ def state_to_features(game_state: dict) -> np.array:
 
     if mode == 1:
         crates_destroyed = crate_destruction_map(crate_map, bombs)
-        best_crates      = best_crates_to_bomb(distance_map, crates_destroyed)
-        goals            = make_goals(best_crates, direction_map, own_position)
+        best_crate_spots = best_crate_bombing_spots (distance_map, reachability_map, 
+                                crates_destroyed, bombing_is_dumb, own_position)
+        goals            = make_goals(best_crate_spots, direction_map, own_position)
 
 
     # 5. Assemble feature array
@@ -355,7 +356,7 @@ def select_nearest (positions, distance_map):
     if len(positions) > 0:
         positions_array   = np.array(positions)
         positions_tuple   = tuple(positions_array.T)
-        min_distance_mask = distance_map[positions_tuple] == np.min(distance_map[positions_tuple])
+        min_distance_mask = distance_map[positions_tuple] == np.amin(distance_map[positions_tuple])
         nearest_positions = positions_array[min_distance_mask]
     else:
         nearest_positions = np.array([])    
@@ -404,17 +405,26 @@ def crate_destruction_map (crate_map, bombs):
 
 
 
-def best_crates_to_bomb (distance_map, number_of_crates_destroyed_map):
+def best_crate_bombing_spots (distance_map, reachability_map, 
+        number_of_crates_destroyed_map, bombing_now_is_suicide, own_position):
     """
     """    
     
-    total_time_map        = distance_map + BOMB_COOLDOWN_TIME
-    destruction_speed_map = number_of_crates_destroyed_map / total_time_map
+    if bombing_now_is_suicide:
+        reachability_map[own_position] = False   # Exclude own_position from considered bombing spots.
+
+    total_time_map             = distance_map + BOMB_COOLDOWN_TIME   # Time until next bomb can be placed
+    reachable_crates_destroyed = reachability_map * number_of_crates_destroyed_map   # Filtering out the reachable crate_destruction spots (precaution).
+    destruction_speed_map      = reachable_crates_destroyed / total_time_map
+    max_destruction_speed      = np.amax(destruction_speed_map)
     
-    best_crates_mask = np.isclose(destruction_speed_map, np.max(destruction_speed_map))
-    best_crates      = np.array(np.where(best_crates_mask)).T
+    if max_destruction_speed > 0:
+        best_spots_mask = np.isclose(destruction_speed_map, max_destruction_speed)   # Safer test for float equality
+        best_spots      = np.array(np.where(best_spots_mask)).T
+    else:
+        best_spots      = np.array([])
     
-    return best_crates
+    return best_spots
 
 
 
