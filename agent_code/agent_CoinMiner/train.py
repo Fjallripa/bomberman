@@ -1,4 +1,4 @@
-# Training for agent_swq13
+# Training for agent_m1
 # ========================
 
 
@@ -13,13 +13,17 @@ from .callbacks import ACTIONS, model_name
 
 
 # Constants 
-state_count  = 15   # number of possible feature states, currently 15 considering order-invariance
-action_count = 4   # was previously & should be in general = len(ACTIONS) = 6; changed for task 1; shouldn't be changed without changing feature design & act()
+state_count_axis_1  = 15   # number of possible feature states for first / second / third Q axis, currently 15 considering order-invariance
+state_count_axis_2  = 3    # OWN POSITION
+state_count_axis_3  = 2    # MODI
+action_count        = len(ACTIONS)   # = 6
 
 
 # Hyperparameters for Q-update
-alpha = 0.003   # initially set to 1
-gamma = 0.0   # initially set to 1, for now be shortsighted.
+alpha = 0.1       # initially set to 1
+gamma = 1         # initially set to 1, for now be shortsighted.
+mode  = "SARSA"   # "SARSA" or "Q-Learning"
+n     = 5         # n-step Q-learning
 
 # Training analysis
 Q_file      = lambda x: f"logs/Q_data/Q{x}.npy"
@@ -43,12 +47,19 @@ def setup_training(self):
 
 
     # Initialize Q
-    self.model = self.Q = np.zeros((state_count, action_count))   # initial guess for Q, for now just zeros
+    self.model = self.Q = np.zeros((state_count_axis_1, state_count_axis_2, state_count_axis_3, action_count))   # initial guess for Q, for now just zeros
     
     #self.training_data = []   # [[features, action_index, reward], ...]  
     self.state_indices   = []
     self.sorted_policies = []
     self.rewards         = []
+    
+    '''
+    self.unsorted_policies = [] # debugging purpose
+    self.unsorted_features = []
+    self.sorted_features = []
+    self.tracked_events = []
+    '''
 
     # Logging
     self.logger.debug("str(): Starting training by initializing Q." + '\n' * 2)
@@ -111,7 +122,7 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     reward          = reward_from_events(self, events)   # give auxiliary rewards
     self.rewards.append(reward)
     #self.training_data.append([sorted_features, sorted_policy, reward])
-
+    # self.tracked_events.append(events) # debugging purpose
 
     # Logging
     #self.logger.debug(f"geo(): Step {new_game_state['step']}")
@@ -143,45 +154,38 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     :param self: The same object that is passed to all of your callbacks.
     """
 
-
     self.timer_eor.start()
 
     # Update training data of last round
-    ## in the last round there doesn't happen anything except e.'SURVIVED_ROUND'. No actions, no rewards (currently), no need to update anything.
+    reward            = reward_from_events(self, events)   # give auxiliary rewards
+    round_length = len(self.state_indices)
+    if round_length == 400:
+        self.rewards[-1] += reward
+    else:
+        self.rewards.append(reward)
     
     
+    ## Logging
+    self.logger.debug(f"eor(): Last Step {round_length}")
+    self.logger.debug(f'eor(): Encountered game event(s) {", ".join(map(repr, events))}')
+    self.logger.debug(f'eor(): Received reward = {reward}')
+
+
     # Updating Q by iterating through every game step
     sum_of_gain_per_Sa = np.zeros_like(self.Q)
     number_of_Sa_steps = np.zeros_like(self.Q)
 
-    
-    step_count = last_game_state['step']
-    for step in range(step_count):
-        # Calculate the state-action pair (S, a)
-        '''
-        sorted_features, action_index, reward \
-                    = self.training_data[step]
-        state_index = features_to_indices(sorted_features)
-        '''
-        state_index   = self.state_indices[step]
-        sorted_policy = self.sorted_policies[step]
-        reward        = self.rewards[step]
+    print(len(self.rewards), len(self.state_indices), len(self.sorted_policies))
 
-        # Calculate predicted future gain
-        if step + 1 < step_count:
-            #features_next    = self.training_data[step + 1][0]
-            #state_index_next = features_to_indices(features_next)
-            state_index_next = self.state_indices[step + 1]
-            V = np.amax(self.Q[state_index_next])
-        else:
-            V = 0
-        
+
+    for step in range(round_length):
+        # Calculate the state-action pair (S, a)
+        state_indices = self.state_indices[step]
+        sorted_policy = self.sorted_policies[step]
         
         # Update gain for (S, a)
-        sum_of_gain_per_Sa[state_index, sorted_policy] \
-            += reward + gamma * V
-        number_of_Sa_steps[state_index, sorted_policy] \
-            += 1
+        sum_of_gain_per_Sa[state_indices][sorted_policy] += Q_update(self, step)
+        number_of_Sa_steps[state_indices][sorted_policy] += 1
 
     # Average estimated gain per (S, a)
     number_of_Sa_steps[number_of_Sa_steps == 0] = 1   # To fix div-by-zero
@@ -195,18 +199,24 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     with open(f"model_{model_name}.pt", "wb") as file:
         pickle.dump(self.model, file)
 
+    ''' Debug
+    for n in range(10):
+        print(self.unsorted_features[n], self.unsorted_policies[n], self.sorted_features[n], self.sorted_policies[n], self.tracked_events[n], self.rewards[n])
+    '''
+
     # Clean up
     #self.training_data = []
     self.state_indices   = []
     self.sorted_policies = []
     self.rewards         = []
-
+    '''
+    self.unsorted_policies = [] # debugging purpose
+    self.unsorted_features = []
+    self.sorted_features = []
+    self.tracked_events = []
+    '''
 
     # Training analysis
-    ## Logging
-    self.logger.debug(f"eor(): Last Step {last_game_state['step']}")
-    self.logger.debug(f'eor(): Encountered game event(s) {", ".join(map(repr, events))}')
-    #self.logger.debug(f'eor(): Received reward = {reward}')
 
     ## Save analysis data
     current_round = last_game_state['round']
@@ -224,7 +234,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     avg_geo_time  = np.mean(np.array(self.geo_times))
 
     ### Appending timing data row-wise to timing csv file
-    time_data = np.array([current_round, step_count, 
+    time_data = np.array([current_round, round_length, 
                           round_time, avg_step_time, 
                           avg_act_time, avg_geo_time,
                           eor_time], ndmin = 2)   # 1xn matrix to become a row
@@ -256,7 +266,9 @@ def reward_from_events(self, events: List[str]) -> int:
     # Auxiliary Rewards for Task 1
     game_rewards = {
         e.COIN_COLLECTED: 5,
-        e.INVALID_ACTION: -1
+        e.INVALID_ACTION: -1,
+        e.KILLED_SELF: -1,
+        e.OPPONENT_ELIMINATED: 25
     }
     
     reward_sum = 0
@@ -267,3 +279,39 @@ def reward_from_events(self, events: List[str]) -> int:
     if not self.train:  self.logger.info(f" Awarded {reward_sum} for events {', '.join(events)}")
     
     return reward_sum
+
+def Q_update(self, t, mode = mode, n = n,  gamma = gamma):
+    """
+    Computes the new value during Q-learning.
+
+    Input:
+    ======
+    self: 
+    t: step of action
+    n: for n-step Q-learning
+    gamma: hyperparameter
+    mode: "SARSA" or "Q-Learning"
+
+    Output:
+    =======
+    the value to update Q, a scalar
+    """
+    t_plus_n = min(t+n, len(self.state_indices)-1)
+    v = 0 # initialize just due to a assignment - reference bug otherwise
+
+    # Approximate Q after next n steps
+    state_next_n_steps_1, state__next_n_steps_2, state_next_n_steps_3 = self.state_indices[t_plus_n]
+
+    if mode == "Q-Learning":
+        v = np.amax(self.Q[state_next_n_steps_1, state__next_n_steps_2, state_next_n_steps_3])
+    
+    elif mode == "SARSA":
+        action_next_n_steps = self.sorted_policies[t_plus_n]
+        v = self.Q[state_next_n_steps_1, state__next_n_steps_2, state_next_n_steps_3, action_next_n_steps]
+    
+    # Compute Reward Sum for next n steps
+    reward_sum = 0
+    for s in range(t, t_plus_n):
+        reward_sum += gamma**(s-t) * self.rewards[s]
+    
+    return(reward_sum + gamma**n * v)

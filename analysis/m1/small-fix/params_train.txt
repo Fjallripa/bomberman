@@ -1,15 +1,16 @@
 # Training parameters used
 
 # Agent
-agent = swq14
-model = YOUR_MODEL
+agent = m1
+model = small-fix
 
 # Training environment
-scenario  = coin-heaven
+scenario  = loot-box
 opponents = single agent
 
 # Training hyperparameters
-mode      = 1-step "Q-learning"
+mode      = "SARSA"
+n-steps   = 1
 rounds    = 100
 epsilon   = exponential, down to 0.01
 alpha     = 0.01
