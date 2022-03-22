@@ -159,25 +159,17 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     self.timer_eor.start()
 
     # Update training data of last round
-    ## in the last round there doesn't happen anything except e.'SURVIVED_ROUND'. No actions, no rewards (currently), no need to update anything.
     reward            = reward_from_events(self, events)   # give auxiliary rewards
     self.rewards[-1] += reward
-    #self.training_data.append([sorted_features, sorted_policy, reward])
-
-    # self.tracked_events.append(events) # debugging purpose
-
-    # Logging
-    #self.logger.debug(f"geo(): Step {new_game_state['step']}")
-    self.logger.debug(f'geo(): Encountered game event(s) {", ".join(map(repr, events))}')
-    self.logger.debug(f'geo(): Received reward {reward}')
+    
     
     # Updating Q by iterating through every game step
     sum_of_gain_per_Sa = np.zeros_like(self.Q)
     number_of_Sa_steps = np.zeros_like(self.Q)
 
     
-    step_count = last_game_state['step']
-    for step in range(step_count):
+    round_length = len(self.state_indices)
+    for step in range(round_length):
         # Calculate the state-action pair (S, a)
         state_index_1, state_index_2, state_index_3  = self.state_indices[step]
         sorted_policy = self.sorted_policies[step]
@@ -219,9 +211,9 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
 
     # Training analysis
     ## Logging
-    self.logger.debug(f"eor(): Last Step {last_game_state['step']}")
+    self.logger.debug(f"eor(): Last Step {round_length}")
     self.logger.debug(f'eor(): Encountered game event(s) {", ".join(map(repr, events))}')
-    #self.logger.debug(f'eor(): Received reward = {reward}')
+    self.logger.debug(f'eor(): Received reward = {reward}')
 
     ## Save analysis data
     current_round = last_game_state['round']
@@ -239,7 +231,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     avg_geo_time  = np.mean(np.array(self.geo_times))
 
     ### Appending timing data row-wise to timing csv file
-    time_data = np.array([current_round, step_count, 
+    time_data = np.array([current_round, round_length, 
                           round_time, avg_step_time, 
                           avg_act_time, avg_geo_time,
                           eor_time], ndmin = 2)   # 1xn matrix to become a row
