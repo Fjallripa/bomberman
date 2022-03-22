@@ -20,10 +20,10 @@ action_count = len(ACTIONS) # = 6
 
 
 # Hyperparameters for Q-update
-alpha = 0.01   # initially set to 1
-gamma = 0.3   # initially set to 1, for now be shortsighted.
+alpha = 0.1   # initially set to 1
+gamma = 1   # initially set to 1, for now be shortsighted.
 mode = "SARSA" # "SARSA" or "Q-Learning"
-n = 3 # n-step Q-learning
+n = 5 # n-step Q-learning
 
 # Training analysis
 Q_file      = lambda x: f"logs/Q_data/Q{x}.npy"
@@ -154,14 +154,23 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     :param self: The same object that is passed to all of your callbacks.
     """
 
-
     self.timer_eor.start()
 
     # Update training data of last round
     reward            = reward_from_events(self, events)   # give auxiliary rewards
-    self.rewards.append(reward)
+    round_length = len(self.state_indices)
+    if round_length == 400:
+        self.rewards[-1] += reward
+    else:
+        self.rewards.append(reward)
     
     
+    ## Logging
+    self.logger.debug(f"eor(): Last Step {round_length}")
+    self.logger.debug(f'eor(): Encountered game event(s) {", ".join(map(repr, events))}')
+    self.logger.debug(f'eor(): Received reward = {reward}')
+
+
     # Updating Q by iterating through every game step
     sum_of_gain_per_Sa = np.zeros_like(self.Q)
     number_of_Sa_steps = np.zeros_like(self.Q)
@@ -169,7 +178,6 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     print(len(self.rewards), len(self.state_indices), len(self.sorted_policies))
 
 
-    round_length = len(self.state_indices)
     for step in range(round_length):
         # Calculate the state-action pair (S, a)
         state_index_1, state_index_2, state_index_3  = self.state_indices[step]
@@ -211,10 +219,6 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     '''
 
     # Training analysis
-    ## Logging
-    self.logger.debug(f"eor(): Last Step {round_length}")
-    self.logger.debug(f'eor(): Encountered game event(s) {", ".join(map(repr, events))}')
-    self.logger.debug(f'eor(): Received reward = {reward}')
 
     ## Save analysis data
     current_round = last_game_state['round']
@@ -294,7 +298,7 @@ def Q_update(self, t, mode = mode, n = n,  gamma = gamma):
     =======
     the value to update Q, a scalar
     """
-    t_plus_n = min(t+n, len(self.rewards)-1)
+    t_plus_n = min(t+n, len(self.state_indices)-1)
     v = 0 # initialize just due to a assignment - reference bug otherwise
 
     # Approximate Q after next n steps

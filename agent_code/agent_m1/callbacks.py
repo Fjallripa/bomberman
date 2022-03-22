@@ -7,7 +7,7 @@ import pickle
 import random
 import numpy as np
 
-model_name = "m1_10k-no-gamma"
+model_name = "m1_test_training_data"
 model_file = f"model_{model_name}.pt"
 
 
@@ -40,7 +40,7 @@ for x in range(1, COLS-1):
 
 
 # Calculating an anealing epsilon
-training_rounds        = 10_000   # Can't this be taken from main?
+training_rounds        = 1000   # Can't this be taken from main?
 epsilon_at_last_round  = 0.01   # Set to desired value
 epsilon_at_first_round = np.power(epsilon_at_last_round, 1 / training_rounds)  # n-th root of epsilon_at_last_round
 epsilon                = lambda round: \
