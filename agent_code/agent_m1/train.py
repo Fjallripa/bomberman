@@ -160,7 +160,16 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
 
     # Update training data of last round
     ## in the last round there doesn't happen anything except e.'SURVIVED_ROUND'. No actions, no rewards (currently), no need to update anything.
-    
+    reward            = reward_from_events(self, events)   # give auxiliary rewards
+    self.rewards[-1] += reward
+    #self.training_data.append([sorted_features, sorted_policy, reward])
+
+    # self.tracked_events.append(events) # debugging purpose
+
+    # Logging
+    #self.logger.debug(f"geo(): Step {new_game_state['step']}")
+    self.logger.debug(f'geo(): Encountered game event(s) {", ".join(map(repr, events))}')
+    self.logger.debug(f'geo(): Received reward {reward}')
     
     # Updating Q by iterating through every game step
     sum_of_gain_per_Sa = np.zeros_like(self.Q)
@@ -264,7 +273,7 @@ def reward_from_events(self, events: List[str]) -> int:
         e.COIN_COLLECTED: 5,
         e.INVALID_ACTION: -1,
         e.KILLED_SELF: -1,
-        e.OPPONENT_ELIMINATED: 5
+        e.OPPONENT_ELIMINATED: 25
     }
     
     reward_sum = 0

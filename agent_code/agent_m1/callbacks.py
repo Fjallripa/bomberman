@@ -14,7 +14,7 @@ model_file = f"model_{model_name}.pt"
 # Global Constants
 ACTIONS            = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 DIRECTIONS         = np.array([(0, -1), (1, 0), (0, 1), (-1, 0)])   # UP, RIGHT, DOWN, LEFT
-DEFAULT_DISTANCE   = 99
+DEFAULT_DISTANCE   = 1000
 BOMB_COOLDOWN_TIME = 7
 COLS = ROWS        = 17
 BLAST              = np.array([-3, -2, -1, 1, 2, 3])
