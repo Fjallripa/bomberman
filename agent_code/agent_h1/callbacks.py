@@ -1,5 +1,5 @@
-# Callbacks for agent_m1
-# =========================
+# Callbacks for agent_h1
+# ======================
 
 
 import os
@@ -7,17 +7,38 @@ import pickle
 import random
 import numpy as np
 
-model_name = "h1"
-model_file = f"model_{model_name}.pt"
+
+
 
 
 # Global Constants
-ACTIONS            = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
-DIRECTIONS         = np.array([(0, -1), (1, 0), (0, 1), (-1, 0)])   # UP, RIGHT, DOWN, LEFT
-DEFAULT_DISTANCE   = 1000
-BOMB_COOLDOWN_TIME = 7
-COLS = ROWS        = 17
-BLAST              = np.array([-3, -2, -1, 1, 2, 3])
+# ----------------
+
+# Training parameters - CHANGE FOR EVERY TRAINING
+AGENT_NAME            = "h1"
+MODEL_NAME            = "naive"
+TRAINING_ROUNDS       = 2_000
+EPSILON_AT_ROUND_ZERO = 0.5
+EPSILON_AT_ROUND_LAST = 0.01
+
+
+# Hyperparameters for Q-update - CHANGE IF YOU WANT
+ALPHA = 0.1       # initially set to 1
+GAMMA = 1         # initially set to 1, for now be shortsighted.
+MODE  = "SARSA"   # "SARSA" or "Q-Learning"
+N     = 5         # n-step Q-learning
+
+
+# Other constants - DON'T CHANGE UNLESS JUSTIFIED
+ACTIONS              = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
+DIRECTIONS           = np.array([(0, -1), (1, 0), (0, 1), (-1, 0)])   # UP, RIGHT, DOWN, LEFT
+DEFAULT_DISTANCE     = 1000
+BOMB_COOLDOWN_TIME   = 7
+COLS = ROWS          = 17
+BLAST                = np.array([-3, -2, -1, 1, 2, 3])
+FOE_TRIGGER_DISTANCE = 5
+STRIKING_DISTANCE    = 3
+
 
 # Calculate constant BOMB_MASK one time
 BOMB_MASK = np.full((COLS, ROWS, COLS, ROWS), False)
@@ -39,12 +60,8 @@ for x in range(1, COLS-1):
                                 = True
 
 
-# Calculating an anealing epsilon
-training_rounds        = 10_000   # Can't this be taken from main?
-epsilon_at_last_round  = 0.01   # Set to desired value
-epsilon_at_first_round = np.power(epsilon_at_last_round, 1 / training_rounds)  # n-th root of epsilon_at_last_round
-epsilon                = lambda round: \
-    np.power(epsilon_at_first_round, round)   # does exponentially decrease with training rounds.
+# Derive model file name
+model_file = f"model_{AGENT_NAME}_{MODEL_NAME}.pt"
 
 
 
@@ -125,7 +142,7 @@ def act(self, game_state: dict) -> str:
 
     # Logging
     self.logger.debug(f"act(): Round {round}, Step {game_state['step']}:")
-    self.logger.debug(f"act(): Game State: Position {game_state['self'][3]}, Features {features}, epsilon {eps}")
+    self.logger.debug(f"act(): Game State: Position {game_state['self'][3]}, Features {features}, epsilon {eps:.3f}")
     self.logger.debug(f"act(): Symmetry: Sorted features {np.append(sorted_direction_features, features[4:])}, Q-indeces {state_indices}, Sorted policy {sorted_policy}")
     self.logger.debug(f"act(): Performed {label} action {action}")
     
@@ -142,6 +159,13 @@ def act(self, game_state: dict) -> str:
 
 # Support functions
 # -----------------
+
+def epsilon (round):
+    # Epsilon annealing through exponential decrease
+    epsilon_at_round_one  = np.power(EPSILON_AT_ROUND_LAST / EPSILON_AT_ROUND_ZERO, 
+                                    1 / TRAINING_ROUNDS)  # n-th root of epsilon_at_last_round
+    return EPSILON_AT_ROUND_ZERO * np.power(epsilon_at_round_one, round)
+
 
 def state_to_features(game_state: dict) -> np.array:
     """

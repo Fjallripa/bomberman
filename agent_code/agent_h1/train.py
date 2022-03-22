@@ -8,8 +8,9 @@ from typing import List
 from codetiming import Timer
 
 import events as e
-from .callbacks import state_to_features, features_to_indices
-from .callbacks import ACTIONS, model_name
+from .callbacks import AGENT_NAME, MODEL_NAME, model_file
+from .callbacks import ACTIONS
+from .callbacks import ALPHA, GAMMA, MODE, N
 
 
 # Constants 
@@ -19,15 +20,10 @@ state_count_axis_3  = 2    # MODI
 action_count        = len(ACTIONS)   # = 6
 
 
-# Hyperparameters for Q-update
-alpha = 0.1       # initially set to 1
-gamma = 1         # initially set to 1, for now be shortsighted.
-mode  = "SARSA"   # "SARSA" or "Q-Learning"
-n     = 5         # n-step Q-learning
 
 # Training analysis
 Q_file      = lambda x: f"logs/Q_data/Q{x}.npy"
-timing_file = f"logs/timing/time_{model_name}.csv"
+timing_file = f"logs/timing/time_{AGENT_NAME}_{MODEL_NAME}.csv"
 
 
 
@@ -192,11 +188,11 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     expected_gain_per_Sa = sum_of_gain_per_Sa / number_of_Sa_steps
 
     # Q-Update
-    self.Q = self.Q * (1 - alpha) + alpha * expected_gain_per_Sa
+    self.Q = self.Q * (1 - ALPHA) + ALPHA * expected_gain_per_Sa
   
     # Save updated Q-function as new model
     self.model = self.Q
-    with open(f"model_{model_name}.pt", "wb") as file:
+    with open(model_file, "wb") as file:
         pickle.dump(self.model, file)
 
     ''' Debug
@@ -280,7 +276,9 @@ def reward_from_events(self, events: List[str]) -> int:
     
     return reward_sum
 
-def Q_update(self, t, mode = mode, n = n,  gamma = gamma):
+
+
+def Q_update(self, t, mode = MODE, n = N,  gamma = GAMMA):
     """
     Computes the new value during Q-learning.
 
