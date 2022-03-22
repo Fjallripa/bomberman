@@ -122,7 +122,6 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     reward          = reward_from_events(self, events)   # give auxiliary rewards
     self.rewards.append(reward)
     #self.training_data.append([sorted_features, sorted_policy, reward])
-
     # self.tracked_events.append(events) # debugging purpose
 
     # Logging
@@ -160,14 +159,16 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
 
     # Update training data of last round
     reward            = reward_from_events(self, events)   # give auxiliary rewards
-    self.rewards[-1] += reward
+    self.rewards.append(reward)
     
     
     # Updating Q by iterating through every game step
     sum_of_gain_per_Sa = np.zeros_like(self.Q)
     number_of_Sa_steps = np.zeros_like(self.Q)
 
-    
+    print(len(self.rewards), len(self.state_indices), len(self.sorted_policies))
+
+
     round_length = len(self.state_indices)
     for step in range(round_length):
         # Calculate the state-action pair (S, a)
