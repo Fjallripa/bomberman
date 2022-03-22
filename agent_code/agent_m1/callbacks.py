@@ -7,7 +7,7 @@ import pickle
 import random
 import numpy as np
 
-model_name = "m1_10k-no-gamma"
+model_name = "m1_small-fix"
 model_file = f"model_{model_name}.pt"
 
 
@@ -106,7 +106,7 @@ def act(self, game_state: dict) -> str:
     eps   = epsilon(round)
     if self.train:
         sorted_policy, label = epsilon_greedy(random_argmax_1d(self.model[state_indices]), eps)
-        policy = np.concatenate(sorting_indices, np.array([4,5]))[sorted_policy]
+        policy = np.append(sorting_indices, np.array([4,5]))[sorted_policy]
         action = ACTIONS[policy]
         self.state_indices.append(state_indices)
         self.sorted_policies.append(sorted_policy)
