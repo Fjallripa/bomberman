@@ -7,7 +7,7 @@ import pickle
 import random
 import numpy as np
 
-model_name = "m1_test_training_data"
+model_name = "m1_small-fix"
 model_file = f"model_{model_name}.pt"
 
 
@@ -40,7 +40,7 @@ for x in range(1, COLS-1):
 
 
 # Calculating an anealing epsilon
-training_rounds        = 1000   # Can't this be taken from main?
+training_rounds        = 10_000   # Can't this be taken from main?
 epsilon_at_last_round  = 0.01   # Set to desired value
 epsilon_at_first_round = np.power(epsilon_at_last_round, 1 / training_rounds)  # n-th root of epsilon_at_last_round
 epsilon                = lambda round: \
@@ -96,11 +96,11 @@ def act(self, game_state: dict) -> str:
     
     if self.train:  self.timer_act.start()
 
-    features = state_to_features(game_state)
-    direction_features = features[:4]
-    sorting_indices = np.argsort(direction_features)   # Moved sorting here to be able to log both sorted and unsorted features.
+    features                  = state_to_features(game_state)
+    direction_features        = features[:4]
+    sorting_indices           = np.argsort(direction_features)   # Moved sorting here to be able to log both sorted and unsorted features.
     sorted_direction_features = direction_features[sorting_indices]
-    state_indices = features_to_indices(sorted_direction_features), features[4], features[5]
+    state_indices             = features_to_indices(sorted_direction_features), features[4], features[5]
 
     round = game_state['round']
     eps   = epsilon(round)
