@@ -21,7 +21,7 @@ action_count = len(ACTIONS) # = 6
 
 # Hyperparameters for Q-update
 alpha = 0.01   # initially set to 1
-gamma = 0.0   # initially set to 1, for now be shortsighted.
+gamma = 0.3   # initially set to 1, for now be shortsighted.
 mode = "SARSA" # "SARSA" or "Q-Learning"
 n = 3 # n-step Q-learning
 
