@@ -96,17 +96,17 @@ def act(self, game_state: dict) -> str:
     
     if self.train:  self.timer_act.start()
 
-    features = state_to_features(game_state)
-    direction_features = features[:4]
-    sorting_indices = np.argsort(direction_features)   # Moved sorting here to be able to log both sorted and unsorted features.
+    features                  = state_to_features(game_state)
+    direction_features        = features[:4]
+    sorting_indices           = np.argsort(direction_features)   # Moved sorting here to be able to log both sorted and unsorted features.
     sorted_direction_features = direction_features[sorting_indices]
-    state_indices = features_to_indices(sorted_direction_features), features[4], features[5]
+    state_indices             = features_to_indices(sorted_direction_features), features[4], features[5]
 
     round = game_state['round']
     eps   = epsilon(round)
     if self.train:
         sorted_policy, label = epsilon_greedy(random_argmax_1d(self.model[state_indices]), eps)
-        policy = np.append(sorting_indices, np.array([4,5]))[sorted_policy]
+        policy = np.concatenate(sorting_indices, np.array([4,5]))[sorted_policy]
         action = ACTIONS[policy]
         self.state_indices.append(state_indices)
         self.sorted_policies.append(sorted_policy)

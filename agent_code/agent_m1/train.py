@@ -172,14 +172,12 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     round_length = len(self.state_indices)
     for step in range(round_length):
         # Calculate the state-action pair (S, a)
-        state_index_1, state_index_2, state_index_3  = self.state_indices[step]
+        state_indices = self.state_indices[step]
         sorted_policy = self.sorted_policies[step]
         
         # Update gain for (S, a)
-        sum_of_gain_per_Sa[state_index_1, state_index_2, state_index_3, sorted_policy] \
-            += Q_update(self, step)
-        number_of_Sa_steps[state_index_1, state_index_2, state_index_3, sorted_policy] \
-            += 1
+        sum_of_gain_per_Sa[state_indices][sorted_policy] += Q_update(self, step)
+        number_of_Sa_steps[state_indices][sorted_policy] += 1
 
     # Average estimated gain per (S, a)
     number_of_Sa_steps[number_of_Sa_steps == 0] = 1   # To fix div-by-zero
