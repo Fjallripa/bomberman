@@ -2,16 +2,16 @@
 
 # Agent
 agent = m1
-model = YOUR_MODEL
+model = test_1_step
 
 # Training environment
 scenario  = loot-box
 opponents = single agent
 
 # Training hyperparameters
-mode      = "Q-learning"
+mode      = "SARSA"
 n-steps   = 1
-rounds    = 100
+rounds    = 1000
 epsilon   = exponential, down to 0.01
-alpha     = 0.01
-gamma     = 0
+alpha     = 0.1
+gamma     = 1
