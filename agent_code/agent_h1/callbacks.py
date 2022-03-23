@@ -122,7 +122,7 @@ def setup(self):
             self.model = pickle.load(file)
 
     # Define dumb_bombing_map 
-    self.dump_bombing_map = np.zeros(COLS, ROWS) 
+    self.dumb_bombing_map = np.zeros((COLS, ROWS)) 
 
 
 def act(self, game_state: dict) -> str:
@@ -135,6 +135,7 @@ def act(self, game_state: dict) -> str:
     :return: The action to take as a string.
     """
     
+    round = game_state['round']
     self.logger.debug(f"act(): Round {round}, Step {game_state['step']}:")
     
     if self.train:  self.timer_act.start()
@@ -145,7 +146,6 @@ def act(self, game_state: dict) -> str:
     sorted_direction_features = direction_features[sorting_indices]
     state_indices             = features_to_indices(sorted_direction_features), features[4], features[5]
 
-    round = game_state['round']
     eps   = epsilon(round)
     if self.train:
         sorted_policy, label = epsilon_greedy(random_argmax_1d(self.model[state_indices]), eps)
@@ -249,7 +249,7 @@ def state_to_features(self, game_state: dict) -> np.array:
     
     # Don't place a bomb if you're not able to
     if not can_place_bomb: 
-        self.dump_bombing_map = np.zeros(COLS, ROWS) # forget all memorized dumb bombing spots 
+        self.dump_bombing_map = np.zeros((COLS, ROWS)) # forget all memorized dumb bombing spots 
         bombing_is_dumb = True 
     
     # Escape bombs that are about to explode
