@@ -21,7 +21,7 @@ action_count = len(ACTIONS) # = 6
 
 # Hyperparameters for Q-update
 alpha = 0.1   # initially set to 1
-gamma = 1   # initially set to 1, for now be shortsighted.
+gamma = 1  # initially set to 1, for now be shortsighted.
 mode = "SARSA" # "SARSA" or "Q-Learning"
 n = 5 # n-step Q-learning
 
@@ -175,7 +175,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     sum_of_gain_per_Sa = np.zeros_like(self.Q)
     number_of_Sa_steps = np.zeros_like(self.Q)
 
-    print(len(self.rewards), len(self.state_indices), len(self.sorted_policies))
+    # print(len(self.rewards), len(self.state_indices), len(self.sorted_policies)) # debugging
 
 
     for step in range(round_length):

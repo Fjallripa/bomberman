@@ -7,14 +7,14 @@ import pickle
 import random
 import numpy as np
 
-model_name = "m1_small-fix"
+model_name = "m1_debug"
 model_file = f"model_{model_name}.pt"
 
 
 # Global Constants
 ACTIONS            = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 DIRECTIONS         = np.array([(0, -1), (1, 0), (0, 1), (-1, 0)])   # UP, RIGHT, DOWN, LEFT
-DEFAULT_DISTANCE   = 1000
+DEFAULT_DISTANCE   = 10000
 BOMB_COOLDOWN_TIME = 7
 COLS = ROWS        = 17
 BLAST              = np.array([-3, -2, -1, 1, 2, 3])
@@ -40,7 +40,7 @@ for x in range(1, COLS-1):
 
 
 # Calculating an anealing epsilon
-training_rounds        = 10_000   # Can't this be taken from main?
+training_rounds        = 1000   # Can't this be taken from main?
 epsilon_at_last_round  = 0.01   # Set to desired value
 epsilon_at_first_round = np.power(epsilon_at_last_round, 1 / training_rounds)  # n-th root of epsilon_at_last_round
 epsilon                = lambda round: \
@@ -96,7 +96,7 @@ def act(self, game_state: dict) -> str:
     
     if self.train:  self.timer_act.start()
 
-    features                  = state_to_features(game_state)
+    features                  = state_to_features(self, game_state)
     direction_features        = features[:4]
     sorting_indices           = np.argsort(direction_features)   # Moved sorting here to be able to log both sorted and unsorted features.
     sorted_direction_features = direction_features[sorting_indices]
@@ -143,7 +143,7 @@ def act(self, game_state: dict) -> str:
 # Support functions
 # -----------------
 
-def state_to_features(game_state: dict) -> np.array:
+def state_to_features(self, game_state: dict) -> np.array:
     """
     *This is not a required function, but an idea to structure your code.*
 
@@ -183,29 +183,39 @@ def state_to_features(game_state: dict) -> np.array:
     bombing_is_dumb = False
     if not game_state['self'][2]: 
         bombing_is_dumb = True
+        debug_part = 1
 
     for (bomb_position, bomb_timer) in bombs:
         steps_until_explosion = bomb_timer + 1
+        no_future_explosion_mask = np.logical_not(BOMB_MASK[bomb_position])
 
         if waiting_is_dumb == False:
-            no_future_explosion_mask = np.logical_not(BOMB_MASK[bomb_position])
             rescue_distances = distance_map[reachability_map & no_future_explosion_mask] # improve by including explosions
             minimal_rescue_distance = DEFAULT_DISTANCE if (rescue_distances.size == 0) else np.amin(rescue_distances)
             if steps_until_explosion <= minimal_rescue_distance:
                 waiting_is_dumb = True
                 bombing_is_dumb = True
+                debug_part = 2
 
-        safe_directions = np.amax(direction_map[reachability_map & no_future_explosion_mask & (distance_map <= steps_until_explosion)], axis = 0, initial = False)
+        safe_directions = np.any(direction_map[reachability_map & no_future_explosion_mask & (distance_map <= steps_until_explosion)], axis = 0)
         going_is_dumb[np.logical_not(safe_directions)] = True
 
     if bombing_is_dumb == False:
+
         no_future_explosion_mask = np.logical_not(BOMB_MASK[own_position])
         rescue_distances = distance_map[reachability_map & no_future_explosion_mask] # improve by including explosions
         minimal_rescue_distance = DEFAULT_DISTANCE if (rescue_distances.size == 0) else np.amin(rescue_distances) 
-        if minimal_rescue_distance >= 4:
+        if minimal_rescue_distance > 4:
                 bombing_is_dumb = True
-    
-    
+                debug_part = 3
+        else: 
+            debug_part = None
+
+        self.logger.debug(f"stf(): own position = {own_position}, \
+            minimal rescue distance = {minimal_rescue_distance}, # rescue distances = {rescue_distances.size}")
+        
+    self.logger.debug(f"stf(): bombing is dumb: {bombing_is_dumb}, part {debug_part}.")
+
     # 3. Check game mode
     reachable_coins = select_reachable(collectable_coins, reachability_map)
         
