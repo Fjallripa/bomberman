@@ -16,7 +16,7 @@ from .callbacks import ALPHA, GAMMA, MODE, N
 # Constants 
 state_count_axis_1  = 15   # number of possible feature states for first / second / third Q axis, currently 15 considering order-invariance
 state_count_axis_2  = 3    # OWN POSITION
-state_count_axis_3  = 2    # MODI
+state_count_axis_3  = 3    # MODI
 action_count        = len(ACTIONS)   # = 6
 
 
@@ -170,8 +170,6 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     # Updating Q by iterating through every game step
     sum_of_gain_per_Sa = np.zeros_like(self.Q)
     number_of_Sa_steps = np.zeros_like(self.Q)
-
-    print(len(self.rewards), len(self.state_indices), len(self.sorted_policies))
 
 
     for step in range(round_length):

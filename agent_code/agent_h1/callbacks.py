@@ -4,6 +4,7 @@
 
 import os
 import pickle
+import json
 import random
 import numpy as np
 
@@ -16,17 +17,22 @@ import numpy as np
 
 # Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME            = "h1"
-MODEL_NAME            = "naive"
-TRAINING_ROUNDS       = 2_000
+MODEL_NAME            = "params"
+TRAINING_ROUNDS       = 200
 EPSILON_AT_ROUND_ZERO = 0.5
 EPSILON_AT_ROUND_LAST = 0.01
 
 
 # Hyperparameters for Q-update - CHANGE IF YOU WANT
-ALPHA = 0.1       # initially set to 1
-GAMMA = 1         # initially set to 1, for now be shortsighted.
-MODE  = "SARSA"   # "SARSA" or "Q-Learning"
-N     = 5         # n-step Q-learning
+ALPHA = 0.02
+GAMMA = 1
+MODE  = "Q-Learning"   # "SARSA" or "Q-Learning"
+N     = 10             # N-step Q-learning
+
+
+# Hyperparameters for agent behavior - CHANGE IF YOU WANT
+FOE_TRIGGER_DISTANCE = 5
+STRIKING_DISTANCE    = 3
 
 
 # Other constants - DON'T CHANGE UNLESS JUSTIFIED
@@ -36,8 +42,6 @@ DEFAULT_DISTANCE     = 1000
 BOMB_COOLDOWN_TIME   = 7
 COLS = ROWS          = 17
 BLAST                = np.array([-3, -2, -1, 1, 2, 3])
-FOE_TRIGGER_DISTANCE = 5
-STRIKING_DISTANCE    = 3
 
 
 # Calculate constant BOMB_MASK one time
@@ -66,7 +70,6 @@ model_file = f"model_{AGENT_NAME}_{MODEL_NAME}.pt"
 
 
 
-
 # Main functions
 # --------------
 
@@ -87,8 +90,30 @@ def setup(self):
 
     
     if self.train:
-        # Setup done in setup_training()
-        pass
+       # Save traing related parameters in json file
+        params_file = 'logs/params.json'
+        params             = {}
+        params['training'] = {}
+        params['Q-update'] = {}
+        params['agent']    = {}
+
+        params['training']['AGENT_NAME']            = AGENT_NAME
+        params['training']['MODEL_NAME']            = MODEL_NAME
+        params['training']['TRAINING_ROUNDS']       = TRAINING_ROUNDS
+        params['training']['EPSILON_AT_ROUND_ZERO'] = EPSILON_AT_ROUND_ZERO
+        params['training']['EPSILON_AT_ROUND_LAST'] = EPSILON_AT_ROUND_LAST
+        params['Q-update']['ALPHA'] = ALPHA
+        params['Q-update']['GAMMA'] = GAMMA
+        params['Q-update']['MODE']  = MODE
+        params['Q-update']['N']     = N
+        params['agent']['FOE_TRIGGER_DISTANCE'] = FOE_TRIGGER_DISTANCE
+        params['agent']['STRIKING_DISTANCE']    = STRIKING_DISTANCE
+        
+        with open(params_file, 'w') as file:
+            json.dump(params, file, indent = 4)
+
+        # Rest of setup done in setup_training()
+        
 
     elif not os.path.isfile(model_file):
         print(f"\nError: the model file {model_file} couldn't be found!\n")
@@ -193,6 +218,7 @@ def state_to_features(game_state: dict) -> np.array:
     collectable_coins = game_state['coins']
     bombs             = game_state['bombs']
     explosion_map     = game_state['explosion_map']
+    foes              = game_state['others']
 
     neighbors = own_position + DIRECTIONS
 
@@ -232,11 +258,19 @@ def state_to_features(game_state: dict) -> np.array:
     
     # 3. Check game mode
     reachable_coins = select_reachable(collectable_coins, reachability_map)
-        
-    if len(reachable_coins) > 0:
-        mode = 0
+    if len(foes) > 0:
+        foe_positions       = np.array([foe[3] for foe in foes])
+        foe_positions_tuple = tuple(foe_positions.T)
+        min_foe_distance    = np.amin(distance_map[foe_positions_tuple])
     else:
-        mode = 1
+        min_foe_distance    = DEFAULT_DISTANCE    
+    
+    if min_foe_distance <= FOE_TRIGGER_DISTANCE:
+        mode = 2   # Hunter mode
+    elif len(reachable_coins) > 0:
+        mode = 0   # Collector mode
+    else:
+        mode = 1   # Miner mode
 
  
     # 4. Compute goal direction
@@ -250,6 +284,11 @@ def state_to_features(game_state: dict) -> np.array:
                                 crates_destroyed, bombing_is_dumb, own_position)
         goals            = make_goals(best_crate_spots, direction_map, own_position)
 
+    if mode == 2:
+        closest_foe  = select_nearest(foe_positions, distance_map)
+        goals        = make_goals(closest_foe, direction_map, own_position)
+        if min_foe_distance <= STRIKING_DISTANCE:
+            goals[4] = True  
 
     # 5. Assemble feature array
     features = np.full(6, 1)
