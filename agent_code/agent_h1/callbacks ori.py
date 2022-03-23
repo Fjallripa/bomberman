@@ -17,17 +17,17 @@ import numpy as np
 
 # Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME            = "h1"
-MODEL_NAME            = "debugged_test"
-TRAINING_ROUNDS       = 1000
-EPSILON_AT_ROUND_ZERO = 1
+MODEL_NAME            = "params"
+TRAINING_ROUNDS       = 200
+EPSILON_AT_ROUND_ZERO = 0.5
 EPSILON_AT_ROUND_LAST = 0.01
 
 
 # Hyperparameters for Q-update - CHANGE IF YOU WANT
-ALPHA = 0.1
+ALPHA = 0.02
 GAMMA = 1
-MODE  = "SARSA"   # "SARSA" or "Q-Learning"
-N     = 5             # N-step Q-learning
+MODE  = "Q-Learning"   # "SARSA" or "Q-Learning"
+N     = 10             # N-step Q-learning
 
 
 # Hyperparameters for agent behavior - CHANGE IF YOU WANT
@@ -63,6 +63,7 @@ for x in range(1, COLS-1):
                 BOMB_MASK[(x, y)][explosion_spots] \
                                 = True
 
+
 # Derive model file name
 model_file = f"model_{AGENT_NAME}_{MODEL_NAME}.pt"
 
@@ -87,6 +88,7 @@ def setup(self):
     :param self: This object is passed to all callbacks and you can set arbitrary values.
     """
 
+    
     if self.train:
        # Save traing related parameters in json file
         params_file = 'logs/params.json'
@@ -121,8 +123,6 @@ def setup(self):
         with open(model_file, "rb") as file:
             self.model = pickle.load(file)
 
-    # Define dumb_bombing_map 
-    self.dump_bombing_map = np.zeros(COLS, ROWS) 
 
 
 def act(self, game_state: dict) -> str:
@@ -135,11 +135,10 @@ def act(self, game_state: dict) -> str:
     :return: The action to take as a string.
     """
     
-    self.logger.debug(f"act(): Round {round}, Step {game_state['step']}:")
     
     if self.train:  self.timer_act.start()
 
-    features                  = state_to_features(self, game_state)
+    features                  = state_to_features(game_state)
     direction_features        = features[:4]
     sorting_indices           = np.argsort(direction_features)   # Moved sorting here to be able to log both sorted and unsorted features.
     sorted_direction_features = direction_features[sorting_indices]
@@ -167,6 +166,7 @@ def act(self, game_state: dict) -> str:
         label         = "policy"
 
     # Logging
+    self.logger.debug(f"act(): Round {round}, Step {game_state['step']}:")
     self.logger.debug(f"act(): Game State: Position {game_state['self'][3]}, Features {features}, epsilon {eps:.3f}")
     self.logger.debug(f"act(): Symmetry: Sorted features {np.append(sorted_direction_features, features[4:])}, Q-indeces {state_indices}, Sorted policy {sorted_policy}")
     self.logger.debug(f"act(): Performed {label} action {action}")
@@ -192,7 +192,7 @@ def epsilon (round):
     return EPSILON_AT_ROUND_ZERO * np.power(epsilon_at_round_one, round)
 
 
-def state_to_features(self, game_state: dict) -> np.array:
+def state_to_features(game_state: dict) -> np.array:
     """
     *This is not a required function, but an idea to structure your code.*
 
@@ -215,7 +215,6 @@ def state_to_features(self, game_state: dict) -> np.array:
     # 0. relevant game_state info
     own_position      = game_state['self'][3]
     crate_map         = game_state['field']
-    can_place_bomb    = game_state['self'][2]
     collectable_coins = game_state['coins']
     bombs             = game_state['bombs']
     explosion_map     = game_state['explosion_map']
@@ -229,52 +228,33 @@ def state_to_features(self, game_state: dict) -> np.array:
 
 
     # 2. Check for danger and lethal danger
-    """
-    going_is_dumb   : 
-        Intuitive definition : going in that direction is suicidal
-        Effect if True       : sets f1-f4 to 0
-    waiting_is_dumb : 
-        Intuitive definition : staying on own_position is suicidal
-        Effect if True       : sets f5 to 0
-    bombing_is_dumb : 
-        Intuitive definition : placing a bomb on own_position is suicidal?
-        Effect if True       : prevents f5 from being 2 via best_crate_bombing_spots() (only mode 1)
-    """
-    
+    going_is_dumb   = np.array([( (not reachability_map[(x,y)]) or explosion_map[(x,y)] ) for [x,y] in neighbors])
     waiting_is_dumb = False
     bombing_is_dumb = False
-    
-    # Don't go where it's invalid or suicidal
-    going_is_dumb   = np.array([( (not reachability_map[(x,y)]) or explosion_map[(x,y)] ) for [x,y] in neighbors])
-    
-    # Don't place a bomb if you're not able to
-    if not can_place_bomb: 
-        self.dump_bombing_map = np.zeros(COLS, ROWS) # forget all memorized dumb bombing spots 
-        bombing_is_dumb = True 
-    
-    # Escape bombs that are about to explode
-    for (bomb_position, bomb_timer) in bombs:
-        steps_until_explosion    = bomb_timer + 1
-        no_future_explosion_mask = np.logical_not(BOMB_MASK[bomb_position])
+    if not game_state['self'][2]: 
+        bombing_is_dumb = True
 
-        if not waiting_is_dumb:
-            rescue_distances         = distance_map[reachability_map & no_future_explosion_mask]   # improve by including explosions
-            minimal_rescue_distance  = DEFAULT_DISTANCE if (rescue_distances.size == 0) else np.amin(rescue_distances)
+    for (bomb_position, bomb_timer) in bombs:
+        steps_until_explosion = bomb_timer + 1
+
+        if waiting_is_dumb == False:
+            no_future_explosion_mask = np.logical_not(BOMB_MASK[bomb_position])
+            rescue_distances = distance_map[reachability_map & no_future_explosion_mask] # improve by including explosions
+            minimal_rescue_distance = DEFAULT_DISTANCE if (rescue_distances.size == 0) else np.amin(rescue_distances)
             if steps_until_explosion <= minimal_rescue_distance:
                 waiting_is_dumb = True
                 bombing_is_dumb = True
 
-        safe_directions = np.any(direction_map[reachability_map & no_future_explosion_mask & (distance_map <= steps_until_explosion)], axis = 0)
+        safe_directions = np.amax(direction_map[reachability_map & no_future_explosion_mask & (distance_map <= steps_until_explosion)], axis = 0, initial = False)
         going_is_dumb[np.logical_not(safe_directions)] = True
 
-    # Don't place a bomb you can't escape from
-    if not bombing_is_dumb:
+    if bombing_is_dumb == False:
         no_future_explosion_mask = np.logical_not(BOMB_MASK[own_position])
-        rescue_distances         = distance_map[reachability_map & no_future_explosion_mask] # improve by including explosions
-        minimal_rescue_distance  = DEFAULT_DISTANCE if (rescue_distances.size == 0) else np.amin(rescue_distances) 
-        if minimal_rescue_distance > 4:
-            bombing_is_dumb = True
-            self.dumb_bombing_map[own_position] = bombing_is_dumb 
+        rescue_distances = distance_map[reachability_map & no_future_explosion_mask] # improve by including explosions
+        minimal_rescue_distance = DEFAULT_DISTANCE if (rescue_distances.size == 0) else np.amin(rescue_distances) 
+        if minimal_rescue_distance >= 4:
+                bombing_is_dumb = True
+    
     
     # 3. Check game mode
     reachable_coins = select_reachable(collectable_coins, reachability_map)
@@ -299,15 +279,15 @@ def state_to_features(self, game_state: dict) -> np.array:
         goals           = make_goals(best_coins, direction_map, own_position)
 
     if mode == 1:
-        crates_destroyed     = crate_destruction_map(crate_map, bombs)
-        sensible_bombing_map = sensible_bombing_spots(reachability_map, self.dumb_bombing_map)
-        best_crate_spots     = best_crate_bombing_spots(distance_map, crates_destroyed, sensible_bombing_map)
-        goals                = make_goals(best_crate_spots, direction_map, own_position)
+        crates_destroyed = crate_destruction_map(crate_map, bombs)
+        best_crate_spots = best_crate_bombing_spots (distance_map, reachability_map, 
+                                crates_destroyed, bombing_is_dumb, own_position)
+        goals            = make_goals(best_crate_spots, direction_map, own_position)
 
     if mode == 2:
         closest_foe  = select_nearest(foe_positions, distance_map)
         goals        = make_goals(closest_foe, direction_map, own_position)
-        if min_foe_distance <= STRIKING_DISTANCE and not bombing_is_dumb:
+        if min_foe_distance <= STRIKING_DISTANCE:
             goals[4] = True  
 
     # 5. Assemble feature array
@@ -332,6 +312,7 @@ def state_to_features(self, game_state: dict) -> np.array:
 
 
     return features
+
 
 
 def proximity_map (own_position, game_field):
@@ -486,16 +467,17 @@ def crate_destruction_map (crate_map, bombs):
     return number_of_crates_destroyed_map
 
 
-def sensible_bombing_spots (reachability_map, dumb_bombing_map):
-    return reachability_map * np.logical_not(dumb_bombing_map)
 
-
-def best_crate_bombing_spots (distance_map, number_of_destroyed_crates_map, sensible_bombing_map):
+def best_crate_bombing_spots (distance_map, reachability_map, 
+        number_of_crates_destroyed_map, bombing_now_is_suicide, own_position):
     """
-    """
+    """    
+    
+    if bombing_now_is_suicide:
+        reachability_map[own_position] = False   # Exclude own_position from considered bombing spots.
 
     total_time_map             = distance_map + BOMB_COOLDOWN_TIME   # Time until next bomb can be placed
-    reachable_crates_destroyed = sensible_bombing_map * number_of_destroyed_crates_map   # Filtering out the reachable crate_destruction spots (precaution).
+    reachable_crates_destroyed = reachability_map * number_of_crates_destroyed_map   # Filtering out the reachable crate_destruction spots (precaution).
     destruction_speed_map      = reachable_crates_destroyed / total_time_map
     max_destruction_speed      = np.amax(destruction_speed_map)
     
