@@ -17,15 +17,22 @@ import numpy as np
 
 # Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME            = "h2b"
-MODEL_NAME            = "sa-counter-test"
-TRAINING_ROUNDS       = 100
+MODEL_NAME            = "new-Q-update"
+TRAINING_ROUNDS       = 1000
 
 
 # Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
-EPSILON_AT_ROUND_ZERO = 1
-EPSILON_THRESHOLD     = 0.1
-EPSILON_AT_INFINITY   = 0.01
-THRESHOLD_FRACTION    = 0.2
+EPSILON_MODE = "experience"   #  "experience" or "rounds"
+if EPSILON_MODE == "experience":
+    EPSILON_AT_START     = 1
+    EPSILON_THRESHOLD    = 0.1
+    EPSILON_AT_INFINITY  = 0.01
+    THRESHOLD_EXPERIENCE = 100
+if EPSILON_MODE == "rounds":
+    EPSILON_AT_ROUND_ZERO = 1
+    EPSILON_THRESHOLD     = 0.1
+    EPSILON_AT_INFINITY   = 0.01
+    THRESHOLD_FRACTION    = 0.2
 
 
 # Hyperparameters for Q-update - CHANGE IF YOU WANT
@@ -72,9 +79,13 @@ for x in range(1, COLS-1):
 model_file = f"model_{AGENT_NAME}_{MODEL_NAME}.pt"
 
 # Derive constants for epsilon annealing
-A               = EPSILON_AT_ROUND_ZERO - EPSILON_AT_INFINITY
-ROUND_THRESHOLD = int(TRAINING_ROUNDS * THRESHOLD_FRACTION)
-L               = 1 / ROUND_THRESHOLD * np.log(A / (EPSILON_THRESHOLD - EPSILON_AT_INFINITY))
+if EPSILON_MODE == "experience":
+    A = EPSILON_AT_START - EPSILON_AT_INFINITY
+    L = 1 / THRESHOLD_EXPERIENCE * np.log(A / (EPSILON_THRESHOLD - EPSILON_AT_INFINITY))
+if EPSILON_MODE == "rounds":
+    A               = EPSILON_AT_ROUND_ZERO - EPSILON_AT_INFINITY
+    ROUND_THRESHOLD = int(TRAINING_ROUNDS * THRESHOLD_FRACTION)
+    L               = 1 / ROUND_THRESHOLD * np.log(A / (EPSILON_THRESHOLD - EPSILON_AT_INFINITY))
 
 
 
@@ -138,6 +149,7 @@ def setup(self):
     self.dumb_bombing_map = np.zeros((COLS, ROWS)) 
 
 
+
 def act(self, game_state: dict) -> str:
     """
     Your agent should parse the input, think, and take a decision.
@@ -148,19 +160,29 @@ def act(self, game_state: dict) -> str:
     :return: The action to take as a string.
     """
     
+
     round = game_state['round']
     self.logger.debug(f"act(): Round {round}, Step {game_state['step']}:")
     
     #if self.train:  self.timer_act.start()
 
+    # Calculate Q-state (`state_indices`) from game_state
     features                  = state_to_features(self, game_state)
     direction_features        = features[:4]
     sorting_indices           = np.argsort(direction_features)   # Moved sorting here to be able to log both sorted and unsorted features.
     sorted_direction_features = direction_features[sorting_indices]
     state_indices             = features_to_indices(sorted_direction_features), features[4], features[5]
 
-    eps   = epsilon(round)
+    # Determine action to be taken
     if self.train:
+        # Calculate probability of random action (`eps`)
+        if EPSILON_MODE == "experience":
+            seen_this_n_times_before = np.sum(self.Sa_counter[state_indices])
+            eps                      = epsilon(seen_this_n_times_before)
+        if EPSILON_MODE == "rounds":
+            eps                      = epsilon(round)
+
+        # Choose policy action with probability 1 - eps
         sorted_policy, label \
                = epsilon_greedy(random_argmax_1d(self.model[state_indices]), eps)
         policy = np.append(sorting_indices, np.array([4,5]))[sorted_policy]
@@ -169,13 +191,16 @@ def act(self, game_state: dict) -> str:
         self.sorted_policies.append(sorted_policy)
 
     else:
+        # Choose policy action
         sorted_policy = random_argmax_1d(self.model[state_indices])
         policy        = np.append(sorting_indices, np.array([4,5]))[sorted_policy]
         action        = ACTIONS[policy]
         label         = "policy"
 
     # Logging
-    self.logger.debug(f"act(): Game State: Position {game_state['self'][3]}, Features {features}, epsilon {eps:.3f}")
+    current_state  = f"act(): Game State: Position {game_state['self'][3]}, Features {features}"
+    current_state += f", epsilon {eps:.3f}"  if self.train  else ""
+    self.logger.debug(current_state)
     self.logger.debug(f"act(): Symmetry: Sorted features {np.append(sorted_direction_features, features[4:])}, Q-indeces {state_indices}, Sorted policy {sorted_policy}")
     self.logger.debug(f"act(): Performed {label} action {action}")
     
@@ -195,8 +220,8 @@ def act(self, game_state: dict) -> str:
 # Support functions
 # -----------------
 
-def epsilon (round):
-    return A * np.exp(- L * round) + EPSILON_AT_INFINITY
+def epsilon (occurances):
+    return A * np.exp(- L * occurances) + EPSILON_AT_INFINITY
 
 
 

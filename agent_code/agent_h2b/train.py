@@ -46,9 +46,9 @@ def setup_training(self):
 
 
     # Initialize Q and state-action-counter
-    self.model = self.Q = self.Sa_counter = \
-        np.zeros((state_count_axis_1, state_count_axis_2, state_count_axis_3, action_count))   # initial guess for Q, for now just zeros
-
+    self.model = self.Q = np.zeros((state_count_axis_1, state_count_axis_2, state_count_axis_3, action_count))   # initial guess for Q, for now just zeros
+    self.Sa_counter     = np.zeros_like(self.Q, dtype = int)
+    
     # Initialize training data lists
     self.state_indices   = []
     self.sorted_policies = []
@@ -158,7 +158,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
 
     # Updating Q by iterating through every game step
     sum_of_gain_per_Sa = np.zeros_like(self.Q)
-    number_of_Sa_steps = np.zeros_like(self.Q)
+    number_of_Sa_steps = np.zeros_like(self.Q, dtype = int)
 
 
     for step in range(round_length):
