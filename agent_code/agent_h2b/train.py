@@ -1,11 +1,11 @@
-# Training for agent_h2
-# =====================
+# Training for agent_h2b
+# ======================
 
 
 import pickle
 import numpy as np
 from typing import List
-from codetiming import Timer
+#from codetiming import Timer
 
 import events as e
 from .callbacks import AGENT_NAME, MODEL_NAME, model_file
@@ -13,17 +13,22 @@ from .callbacks import ACTIONS
 from .callbacks import ALPHA, GAMMA, MODE, N
 
 
-# Constants 
-state_count_axis_1  = 15   # number of possible feature states for first / second / third Q axis, currently 15 considering order-invariance
-state_count_axis_2  = 3    # OWN POSITION
-state_count_axis_3  = 3    # MODI
-action_count        = len(ACTIONS)   # = 6
 
 
 
-# Training analysis
-Q_file      = lambda x: f"logs/Q_data/Q{x}.npy"
-timing_file = f"logs/timing/time_{AGENT_NAME}_{MODEL_NAME}.csv"
+# Global training constants
+# -------------------------
+
+# Q-model constants 
+state_count_axis_1 = 15   # number of possible feature states for first / second / third Q axis, currently 15 considering order-invariance
+state_count_axis_2 = 3    # OWN POSITION
+state_count_axis_3 = 3    # MODI
+action_count       = len(ACTIONS)   # = 6
+
+# Training analysis files
+Q_file  = lambda x: f"logs/Q_data/Q{x}.npy"
+Sa_file = "logs/state_action_counter.npy"
+#timing_file = f"logs/timing/time_{AGENT_NAME}_{MODEL_NAME}.csv"
 
 
 
@@ -35,32 +40,25 @@ timing_file = f"logs/timing/time_{AGENT_NAME}_{MODEL_NAME}.csv"
 def setup_training(self):
     """
     Initialise self for training purpose.
-
     This is called after `setup` in callbacks.py.
-
     :param self: This object is passed to all callbacks and you can set arbitrary values.
     """
 
 
-    # Initialize Q
-    self.model = self.Q = np.zeros((state_count_axis_1, state_count_axis_2, state_count_axis_3, action_count))   # initial guess for Q, for now just zeros
-    
-    #self.training_data = []   # [[features, action_index, reward], ...]  
+    # Initialize Q and state-action-counter
+    self.model = self.Q = self.Sa_counter = \
+        np.zeros((state_count_axis_1, state_count_axis_2, state_count_axis_3, action_count))   # initial guess for Q, for now just zeros
+
+    # Initialize training data lists
     self.state_indices   = []
     self.sorted_policies = []
     self.rewards         = []
     
-    '''
-    self.unsorted_policies = [] # debugging purpose
-    self.unsorted_features = []
-    self.sorted_features = []
-    self.tracked_events = []
-    '''
-
     # Logging
     self.logger.debug("str(): Starting training by initializing Q." + '\n' * 2)
 
     # Time training and log it
+    '''
     timing_header = "\t".join(['round', 'step_count', 
                                'round_time', 'avg_step_time', 
                                'avg_act_time', 'avg_geo_time',
@@ -79,7 +77,8 @@ def setup_training(self):
     self.timer_eor   = Timer(logger = None)
     
     self.timer_round.start()
-    self.timer_step.start()      
+    self.timer_step.start()
+    '''    
 
 
 
@@ -102,30 +101,18 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     """
 
 
-    self.timer_geo.start()
+    #self.timer_geo.start()
     
-    # Collecting training data: 
-    ## new_game_state -> sorted features, 
-    ## self_action    -> sorted policy, 
-    ## events         -> reward
-    '''
-    features        = state_to_features(new_game_state)
-    sorting_indices = np.argsort(features)   # Moved sorting here to be able to log both sorted and unsorted features.
-    sorted_features = features[sorting_indices]
-    policy          = ACTIONS.index(self_action)
-    sorted_policy   = list(sorting_indices).index(policy)   # find index of self_action, which was actually picked during training
-    '''
+    # Calculating rewards
     reward          = reward_from_events(self, events)   # give auxiliary rewards
     self.rewards.append(reward)
-    #self.training_data.append([sorted_features, sorted_policy, reward])
-    # self.tracked_events.append(events) # debugging purpose
-
+    
     # Logging
-    #self.logger.debug(f"geo(): Step {new_game_state['step']}")
     self.logger.debug(f'geo(): Encountered game event(s) {", ".join(map(repr, events))}')
     self.logger.debug(f'geo(): Received reward {reward}')
 
     # Step timing
+    '''
     geo_time  = self.timer_geo.stop()
     step_time = self.timer_step.stop()
     
@@ -133,6 +120,7 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     self.geo_times.append(geo_time)
 
     self.timer_step.start()
+    '''
 
 
 
@@ -150,10 +138,11 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     :param self: The same object that is passed to all of your callbacks.
     """
 
-    self.timer_eor.start()
+
+    #self.timer_eor.start()
 
     # Update training data of last round
-    reward            = reward_from_events(self, events)   # give auxiliary rewards
+    reward       = reward_from_events(self, events)   # give auxiliary rewards
     round_length = len(self.state_indices)
     if round_length == 400:
         self.rewards[-1] += reward
@@ -181,32 +170,25 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         sum_of_gain_per_Sa[state_indices][sorted_policy] += Q_update(self, step)
         number_of_Sa_steps[state_indices][sorted_policy] += 1
 
-    
+    self.Sa_counter += number_of_Sa_steps  # Collects total number of encounters with each (S, a) during training.
+
+
     # Q-Update
     occured_Sa         = number_of_Sa_steps != 0 # True if Sa occured in last round, else False 
     self.Q[occured_Sa] = self.Q[occured_Sa] * (1 - ALPHA) + ALPHA * sum_of_gain_per_Sa[occured_Sa] / number_of_Sa_steps[occured_Sa]
+  
   
     # Save updated Q-function as new model
     self.model = self.Q
     with open(model_file, "wb") as file:
         pickle.dump(self.model, file)
 
-    ''' Debug
-    for n in range(10):
-        print(self.unsorted_features[n], self.unsorted_policies[n], self.sorted_features[n], self.sorted_policies[n], self.tracked_events[n], self.rewards[n])
-    '''
-
+    
     # Clean up
-    #self.training_data = []
     self.state_indices   = []
     self.sorted_policies = []
     self.rewards         = []
-    '''
-    self.unsorted_policies = [] # debugging purpose
-    self.unsorted_features = []
-    self.sorted_features = []
-    self.tracked_events = []
-    '''
+    
 
     # Training analysis
 
@@ -214,9 +196,12 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     current_round = last_game_state['round']
     with open(Q_file(current_round), "wb") as file:
         np.save(file, self.model)
+    np.save(Sa_file, self.Sa_counter)
+
+    
 
     ## Time the training and save the data
-
+    '''
     eor_time      = self.timer_eor.stop()
     round_time    = self.timer_round.stop()
     self.timer_step.stop()   # This last timer was started after the last step and thus isn't needed.
@@ -241,7 +226,8 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     ### Starting timer again for the next round.
     self.timer_round.start()
     self.timer_step.start()
-    
+    '''
+
 
 
 
@@ -255,6 +241,7 @@ def reward_from_events(self, events: List[str]) -> int:
     certain behavior.
     """
     
+
     # Auxiliary Rewards for Task 1
     game_rewards = {
         e.COIN_COLLECTED: 5,
@@ -290,6 +277,8 @@ def Q_update(self, t, mode = MODE, n = N,  gamma = GAMMA):
     =======
     the value to update Q, a scalar
     """
+    
+    
     t_plus_n = min(t+n, len(self.state_indices)-1)
     v = 0 # initialize just due to a assignment - reference bug otherwise
 
