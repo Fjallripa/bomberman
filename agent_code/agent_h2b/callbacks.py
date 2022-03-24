@@ -17,8 +17,8 @@ import numpy as np
 
 # Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME            = "h2b"
-MODEL_NAME            = "removed-junk"
-TRAINING_ROUNDS       = 1000
+MODEL_NAME            = "sa-counter-test"
+TRAINING_ROUNDS       = 100
 
 
 # Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT

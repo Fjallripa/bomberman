@@ -1,8 +1,8 @@
 {
     "training": {
         "AGENT_NAME": "h2b",
-        "MODEL_NAME": "removed-junk",
-        "TRAINING_ROUNDS": 1000
+        "MODEL_NAME": "sa-counter-test",
+        "TRAINING_ROUNDS": 100
     },
     "epsilon": {
         "EPSILON_AT_ROUND_ZERO": 1,
