@@ -17,7 +17,7 @@ import numpy as np
 
 # Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME            = "h2"
-MODEL_NAME            = "debug_test"
+MODEL_NAME            = "debug_test_2"
 TRAINING_ROUNDS       = 1000
 EPSILON_AT_ROUND_ZERO = 1
 EPSILON_AT_ROUND_LAST = 0.01
