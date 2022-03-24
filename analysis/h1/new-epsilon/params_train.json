@@ -1,0 +1,23 @@
+{
+    "training": {
+        "AGENT_NAME": "h1",
+        "MODEL_NAME": "new-epsilon",
+        "TRAINING_ROUNDS": 1000
+    },
+    "epsilon": {
+        "EPSILON_AT_ROUND_ZERO": 1,
+        "EPSILON_THRESHOLD": 0.1,
+        "EPSILON_AT_INFINITY": 0.01,
+        "THRESHOLD_FRACTION": 0.2
+    },
+    "Q-update": {
+        "ALPHA": 0.1,
+        "GAMMA": 1,
+        "MODE": "SARSA",
+        "N": 5
+    },
+    "agent": {
+        "FOE_TRIGGER_DISTANCE": 5,
+        "STRIKING_DISTANCE": 3
+    }
+}
