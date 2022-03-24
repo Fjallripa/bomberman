@@ -181,13 +181,10 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         sum_of_gain_per_Sa[state_indices][sorted_policy] += Q_update(self, step)
         number_of_Sa_steps[state_indices][sorted_policy] += 1
 
-    # Average estimated gain per (S, a)
-    number_of_Sa_steps[number_of_Sa_steps == 0] = 1   # To fix div-by-zero
-    expected_gain_per_Sa = sum_of_gain_per_Sa / number_of_Sa_steps
-
+    
     # Q-Update
-    occured_Sa = number_of_Sa_steps != 0 # True if Sa occured in last round, else False 
-    self.Q[occured_Sa] = self.Q[occured_Sa] * (1 - ALPHA) + ALPHA * expected_gain_per_Sa[occured_Sa]
+    occured_Sa         = number_of_Sa_steps != 0 # True if Sa occured in last round, else False 
+    self.Q[occured_Sa] = self.Q[occured_Sa] * (1 - ALPHA) + ALPHA * sum_of_gain_per_Sa[occured_Sa] / number_of_Sa_steps[occured_Sa]
   
     # Save updated Q-function as new model
     self.model = self.Q
