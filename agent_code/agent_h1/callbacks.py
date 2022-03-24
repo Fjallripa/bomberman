@@ -17,10 +17,15 @@ import numpy as np
 
 # Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME            = "h1"
-MODEL_NAME            = "debugged_test_longer"
-TRAINING_ROUNDS       = 10000
+MODEL_NAME            = "new-epsilon"
+TRAINING_ROUNDS       = 1000
+
+
+# Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
 EPSILON_AT_ROUND_ZERO = 1
-EPSILON_AT_ROUND_LAST = 0.01
+EPSILON_THRESHOLD     = 0.1
+EPSILON_AT_INFINITY   = 0.01
+THRESHOLD_FRACTION    = 0.2
 
 
 # Hyperparameters for Q-update - CHANGE IF YOU WANT
@@ -66,6 +71,11 @@ for x in range(1, COLS-1):
 # Derive model file name
 model_file = f"model_{AGENT_NAME}_{MODEL_NAME}.pt"
 
+# Derive constants for epsilon annealing
+A               = EPSILON_AT_ROUND_ZERO - EPSILON_AT_INFINITY
+ROUND_THRESHOLD = int(TRAINING_ROUNDS * THRESHOLD_FRACTION)
+L               = 1 / ROUND_THRESHOLD * np.log(A / (EPSILON_THRESHOLD - EPSILON_AT_INFINITY))
+
 
 
 
@@ -92,14 +102,17 @@ def setup(self):
         params_file = 'logs/params.json'
         params             = {}
         params['training'] = {}
+        params['epsilon']  = {}
         params['Q-update'] = {}
         params['agent']    = {}
 
         params['training']['AGENT_NAME']            = AGENT_NAME
         params['training']['MODEL_NAME']            = MODEL_NAME
         params['training']['TRAINING_ROUNDS']       = TRAINING_ROUNDS
-        params['training']['EPSILON_AT_ROUND_ZERO'] = EPSILON_AT_ROUND_ZERO
-        params['training']['EPSILON_AT_ROUND_LAST'] = EPSILON_AT_ROUND_LAST
+        params['epsilon']['EPSILON_AT_ROUND_ZERO'] = EPSILON_AT_ROUND_ZERO
+        params['epsilon']['EPSILON_THRESHOLD']     = EPSILON_THRESHOLD
+        params['epsilon']['EPSILON_AT_INFINITY']   = EPSILON_AT_INFINITY
+        params['epsilon']['THRESHOLD_FRACTION']    = THRESHOLD_FRACTION
         params['Q-update']['ALPHA'] = ALPHA
         params['Q-update']['GAMMA'] = GAMMA
         params['Q-update']['MODE']  = MODE
@@ -186,10 +199,8 @@ def act(self, game_state: dict) -> str:
 # -----------------
 
 def epsilon (round):
-    # Epsilon annealing through exponential decrease
-    epsilon_at_round_one  = np.power(EPSILON_AT_ROUND_LAST / EPSILON_AT_ROUND_ZERO, 
-                                    1 / TRAINING_ROUNDS)  # n-th root of epsilon_at_last_round
-    return EPSILON_AT_ROUND_ZERO * np.power(epsilon_at_round_one, round)
+    return A * np.exp(- L * round) + EPSILON_AT_INFINITY
+
 
 
 def state_to_features(self, game_state: dict) -> np.array:
