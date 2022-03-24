@@ -247,8 +247,24 @@ def reward_from_events(self, events: List[str]) -> int:
         e.COIN_COLLECTED: 5,
         e.INVALID_ACTION: -1,
         e.KILLED_SELF: -1,
-        e.OPPONENT_ELIMINATED: 25
+        e.KILLED_OPPONENT: 25,
+        
+        
     }
+    # New game_rewards
+    '''
+        e.COIN_COLLECTED:   5,
+        e.INVALID_ACTION:  -1,
+        e.KILLED_SELF:    -25,
+        e.GOT_KILLED:     -25,
+        e.KILLED_OPPONENT: 25,   
+    '''
+    '''
+        e.COIN_COLLECTED: 5,
+        e.INVALID_ACTION: -1,
+        e.KILLED_SELF: -1,
+        e.OPPONENT_ELIMINATED: 25
+    '''
     
     reward_sum = 0
     for event in events:

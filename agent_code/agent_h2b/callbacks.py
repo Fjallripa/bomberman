@@ -17,12 +17,12 @@ import numpy as np
 
 # Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME            = "h2b"
-MODEL_NAME            = "new-Q-update"
+MODEL_NAME            = "rewards-check"
 TRAINING_ROUNDS       = 1000
 
 
 # Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
-EPSILON_MODE = "experience"   #  "experience" or "rounds"
+EPSILON_MODE             = "experience"
 if EPSILON_MODE == "experience":
     EPSILON_AT_START     = 1
     EPSILON_THRESHOLD    = 0.1
@@ -120,10 +120,17 @@ def setup(self):
         params['training']['AGENT_NAME']            = AGENT_NAME
         params['training']['MODEL_NAME']            = MODEL_NAME
         params['training']['TRAINING_ROUNDS']       = TRAINING_ROUNDS
-        params['epsilon']['EPSILON_AT_ROUND_ZERO'] = EPSILON_AT_ROUND_ZERO
-        params['epsilon']['EPSILON_THRESHOLD']     = EPSILON_THRESHOLD
-        params['epsilon']['EPSILON_AT_INFINITY']   = EPSILON_AT_INFINITY
-        params['epsilon']['THRESHOLD_FRACTION']    = THRESHOLD_FRACTION
+        params['epsilon']['EPSILON_MODE']              = EPSILON_MODE
+        if EPSILON_MODE == "experience":
+            params['epsilon']['EPSILON_AT_START']      = EPSILON_AT_START
+            params['epsilon']['EPSILON_THRESHOLD']     = EPSILON_THRESHOLD
+            params['epsilon']['EPSILON_AT_INFINITY']   = EPSILON_AT_INFINITY
+            params['epsilon']['THRESHOLD_EXPERIENCE']  = THRESHOLD_EXPERIENCE
+        if EPSILON_MODE == "rounds":
+            params['epsilon']['EPSILON_AT_ROUND_ZERO'] = EPSILON_AT_ROUND_ZERO
+            params['epsilon']['EPSILON_THRESHOLD']     = EPSILON_THRESHOLD
+            params['epsilon']['EPSILON_AT_INFINITY']   = EPSILON_AT_INFINITY
+            params['epsilon']['THRESHOLD_FRACTION']    = THRESHOLD_FRACTION
         params['Q-update']['ALPHA'] = ALPHA
         params['Q-update']['GAMMA'] = GAMMA
         params['Q-update']['MODE']  = MODE

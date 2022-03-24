@@ -1,0 +1,24 @@
+{
+    "training": {
+        "AGENT_NAME": "h2b",
+        "MODEL_NAME": "better-rewards",
+        "TRAINING_ROUNDS": 1000
+    },
+    "epsilon": {
+        "EPSILON_MODE": "experience",
+        "EPSILON_AT_START": 1,
+        "EPSILON_THRESHOLD": 0.1,
+        "EPSILON_AT_INFINITY": 0.01,
+        "THRESHOLD_EXPERIENCE": 100
+    },
+    "Q-update": {
+        "ALPHA": 0.1,
+        "GAMMA": 1,
+        "MODE": "SARSA",
+        "N": 5
+    },
+    "agent": {
+        "FOE_TRIGGER_DISTANCE": 5,
+        "STRIKING_DISTANCE": 3
+    }
+}
