@@ -1,5 +1,5 @@
-# Callbacks for agent_h2b
-# =======================
+# Callbacks for agent_h2
+# ======================
 
 
 import os
@@ -16,8 +16,8 @@ import numpy as np
 # ----------------
 
 # Training parameters - CHANGE FOR EVERY TRAINING
-AGENT_NAME            = "h2b"
-MODEL_NAME            = "sa-counter-test"
+AGENT_NAME            = "h2"
+MODEL_NAME            = "new"
 TRAINING_ROUNDS       = 100
 
 
