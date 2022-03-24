@@ -11,6 +11,7 @@ import events as e
 from .callbacks import AGENT_NAME, MODEL_NAME, model_file
 from .callbacks import ACTIONS
 from .callbacks import ALPHA, GAMMA, MODE, N
+from .callbacks import Q_INITIAL, Sa_COUNTER_INITIAL
 
 
 
@@ -46,8 +47,20 @@ def setup_training(self):
 
 
     # Initialize Q and state-action-counter
-    self.model = self.Q = np.zeros((state_count_axis_1, state_count_axis_2, state_count_axis_3, action_count))   # initial guess for Q, for now just zeros
-    self.Sa_counter     = np.zeros_like(self.Q, dtype = int)
+    if Q_INITIAL == "RESET":
+        self.model = self.Q = np.zeros((state_count_axis_1, state_count_axis_2, state_count_axis_3, action_count)) 
+    else:
+        self.logger.info(f"Loading inital Q from {Q_INITIAL}.")
+        with open(Q_INITIAL, "rb") as file:
+            self.model = self.Q = pickle.load(file)
+    
+    if Sa_COUNTER_INITIAL == "RESET":
+        self.Sa_counter = np.zeros_like(self.Q, dtype = int)
+    else:
+        self.logger.info(f"Loading inital Sa_counter from {Sa_COUNTER_INITIAL}.")
+        with open(Sa_COUNTER_INITIAL, "rb") as file:
+            self.Sa_counter = pickle.load(file)
+
     
     # Initialize training data lists
     self.state_indices   = []

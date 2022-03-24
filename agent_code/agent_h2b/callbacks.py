@@ -17,9 +17,9 @@ import numpy as np
 
 # Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME            = "h2b"
-MODEL_NAME            = "test_mode_3_&_dumb_map_debug"
+MODEL_NAME            = "new-stf"
 TRAINING_ROUNDS       = 1000
-COINS                 = 50 # maximal amount of coins; scenario dependent: classicaly = 7, coin-heaven / loot-box = 50
+COINS                 = 50 # maximal amount of coins; scenario dependent
 
 
 # Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
@@ -40,7 +40,10 @@ if EPSILON_MODE == "rounds":
 ALPHA = 0.1
 GAMMA = 1
 MODE  = "SARSA"   # "SARSA" or "Q-Learning"
-N     = 5             # N-step Q-learning
+N     = 5         # N-step Q-learning
+
+Q_INITIAL          = "RESET" # "RESET" to reset of initial Q-Table; otherwise "<file name>" within same directiory as callbacks
+Sa_COUNTER_INITIAL = "RESET" # "RESET" to reset of initial counts of components of Q-Table; otherwise "<file name>" within same directiory as callbacks
 
 # Hyperparameters for agent behavior - CHANGE IF YOU WANT
 FOE_TRIGGER_DISTANCE = 5
