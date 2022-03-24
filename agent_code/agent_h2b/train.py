@@ -13,16 +13,21 @@ from .callbacks import ACTIONS
 from .callbacks import ALPHA, GAMMA, MODE, N
 
 
-# Constants 
-state_count_axis_1  = 15   # number of possible feature states for first / second / third Q axis, currently 15 considering order-invariance
-state_count_axis_2  = 3    # OWN POSITION
-state_count_axis_3  = 3    # MODI
-action_count        = len(ACTIONS)   # = 6
 
 
 
-# Training analysis
-Q_file      = lambda x: f"logs/Q_data/Q{x}.npy"
+# Global training constants
+# -------------------------
+
+# Q-model constants 
+state_count_axis_1 = 15   # number of possible feature states for first / second / third Q axis, currently 15 considering order-invariance
+state_count_axis_2 = 3    # OWN POSITION
+state_count_axis_3 = 3    # MODI
+action_count       = len(ACTIONS)   # = 6
+
+# Training analysis files
+Q_file  = lambda x: f"logs/Q_data/Q{x}.npy"
+Sa_file = "logs/state_action_counter.npy"
 #timing_file = f"logs/timing/time_{AGENT_NAME}_{MODEL_NAME}.csv"
 
 
@@ -40,13 +45,14 @@ def setup_training(self):
     """
 
 
-    # Initialize Q
-    self.model = self.Q = np.zeros((state_count_axis_1, state_count_axis_2, state_count_axis_3, action_count))   # initial guess for Q, for now just zeros
-    
+    # Initialize Q and state-action-counter
+    self.model = self.Q = self.Sa_counter = \
+        np.zeros((state_count_axis_1, state_count_axis_2, state_count_axis_3, action_count))   # initial guess for Q, for now just zeros
+
+    # Initialize training data lists
     self.state_indices   = []
     self.sorted_policies = []
     self.rewards         = []
-    
     
     # Logging
     self.logger.debug("str(): Starting training by initializing Q." + '\n' * 2)
@@ -132,6 +138,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     :param self: The same object that is passed to all of your callbacks.
     """
 
+
     #self.timer_eor.start()
 
     # Update training data of last round
@@ -163,6 +170,8 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         sum_of_gain_per_Sa[state_indices][sorted_policy] += Q_update(self, step)
         number_of_Sa_steps[state_indices][sorted_policy] += 1
 
+    self.Sa_counter += number_of_Sa_steps  # Collects total number of encounters with each (S, a) during training.
+
     # Average estimated gain per (S, a)
     number_of_Sa_steps[number_of_Sa_steps == 0] = 1   # To fix div-by-zero
     expected_gain_per_Sa = sum_of_gain_per_Sa / number_of_Sa_steps
@@ -188,6 +197,9 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     current_round = last_game_state['round']
     with open(Q_file(current_round), "wb") as file:
         np.save(file, self.model)
+    np.save(Sa_file, self.Sa_counter)
+
+    
 
     ## Time the training and save the data
     '''
@@ -220,6 +232,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
 
 
 
+
 # Support functions
 # -----------------
 
@@ -229,6 +242,7 @@ def reward_from_events(self, events: List[str]) -> int:
     certain behavior.
     """
     
+
     # Auxiliary Rewards for Task 1
     game_rewards = {
         e.COIN_COLLECTED: 5,
@@ -264,6 +278,8 @@ def Q_update(self, t, mode = MODE, n = N,  gamma = GAMMA):
     =======
     the value to update Q, a scalar
     """
+    
+    
     t_plus_n = min(t+n, len(self.state_indices)-1)
     v = 0 # initialize just due to a assignment - reference bug otherwise
 
