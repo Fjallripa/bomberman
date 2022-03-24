@@ -5,7 +5,7 @@
 import pickle
 import numpy as np
 from typing import List
-from codetiming import Timer
+#from codetiming import Timer
 
 import events as e
 from .callbacks import AGENT_NAME, MODEL_NAME, model_file
@@ -23,7 +23,7 @@ action_count        = len(ACTIONS)   # = 6
 
 # Training analysis
 Q_file      = lambda x: f"logs/Q_data/Q{x}.npy"
-timing_file = f"logs/timing/time_{AGENT_NAME}_{MODEL_NAME}.csv"
+#timing_file = f"logs/timing/time_{AGENT_NAME}_{MODEL_NAME}.csv"
 
 
 
@@ -35,9 +35,7 @@ timing_file = f"logs/timing/time_{AGENT_NAME}_{MODEL_NAME}.csv"
 def setup_training(self):
     """
     Initialise self for training purpose.
-
     This is called after `setup` in callbacks.py.
-
     :param self: This object is passed to all callbacks and you can set arbitrary values.
     """
 
@@ -45,22 +43,16 @@ def setup_training(self):
     # Initialize Q
     self.model = self.Q = np.zeros((state_count_axis_1, state_count_axis_2, state_count_axis_3, action_count))   # initial guess for Q, for now just zeros
     
-    #self.training_data = []   # [[features, action_index, reward], ...]  
     self.state_indices   = []
     self.sorted_policies = []
     self.rewards         = []
     
-    '''
-    self.unsorted_policies = [] # debugging purpose
-    self.unsorted_features = []
-    self.sorted_features = []
-    self.tracked_events = []
-    '''
-
+    
     # Logging
     self.logger.debug("str(): Starting training by initializing Q." + '\n' * 2)
 
     # Time training and log it
+    '''
     timing_header = "\t".join(['round', 'step_count', 
                                'round_time', 'avg_step_time', 
                                'avg_act_time', 'avg_geo_time',
@@ -79,7 +71,8 @@ def setup_training(self):
     self.timer_eor   = Timer(logger = None)
     
     self.timer_round.start()
-    self.timer_step.start()      
+    self.timer_step.start()
+    '''    
 
 
 
@@ -102,30 +95,18 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     """
 
 
-    self.timer_geo.start()
+    #self.timer_geo.start()
     
-    # Collecting training data: 
-    ## new_game_state -> sorted features, 
-    ## self_action    -> sorted policy, 
-    ## events         -> reward
-    '''
-    features        = state_to_features(new_game_state)
-    sorting_indices = np.argsort(features)   # Moved sorting here to be able to log both sorted and unsorted features.
-    sorted_features = features[sorting_indices]
-    policy          = ACTIONS.index(self_action)
-    sorted_policy   = list(sorting_indices).index(policy)   # find index of self_action, which was actually picked during training
-    '''
+    # Calculating rewards
     reward          = reward_from_events(self, events)   # give auxiliary rewards
     self.rewards.append(reward)
-    #self.training_data.append([sorted_features, sorted_policy, reward])
-    # self.tracked_events.append(events) # debugging purpose
-
+    
     # Logging
-    #self.logger.debug(f"geo(): Step {new_game_state['step']}")
     self.logger.debug(f'geo(): Encountered game event(s) {", ".join(map(repr, events))}')
     self.logger.debug(f'geo(): Received reward {reward}')
 
     # Step timing
+    '''
     geo_time  = self.timer_geo.stop()
     step_time = self.timer_step.stop()
     
@@ -133,6 +114,7 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     self.geo_times.append(geo_time)
 
     self.timer_step.start()
+    '''
 
 
 
@@ -150,10 +132,10 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     :param self: The same object that is passed to all of your callbacks.
     """
 
-    self.timer_eor.start()
+    #self.timer_eor.start()
 
     # Update training data of last round
-    reward            = reward_from_events(self, events)   # give auxiliary rewards
+    reward       = reward_from_events(self, events)   # give auxiliary rewards
     round_length = len(self.state_indices)
     if round_length == 400:
         self.rewards[-1] += reward
@@ -193,22 +175,12 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     with open(model_file, "wb") as file:
         pickle.dump(self.model, file)
 
-    ''' Debug
-    for n in range(10):
-        print(self.unsorted_features[n], self.unsorted_policies[n], self.sorted_features[n], self.sorted_policies[n], self.tracked_events[n], self.rewards[n])
-    '''
-
+    
     # Clean up
-    #self.training_data = []
     self.state_indices   = []
     self.sorted_policies = []
     self.rewards         = []
-    '''
-    self.unsorted_policies = [] # debugging purpose
-    self.unsorted_features = []
-    self.sorted_features = []
-    self.tracked_events = []
-    '''
+    
 
     # Training analysis
 
@@ -218,7 +190,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         np.save(file, self.model)
 
     ## Time the training and save the data
-
+    '''
     eor_time      = self.timer_eor.stop()
     round_time    = self.timer_round.stop()
     self.timer_step.stop()   # This last timer was started after the last step and thus isn't needed.
@@ -243,7 +215,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     ### Starting timer again for the next round.
     self.timer_round.start()
     self.timer_step.start()
-    
+    '''
 
 
 

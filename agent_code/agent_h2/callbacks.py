@@ -16,8 +16,8 @@ import numpy as np
 # ----------------
 
 # Training parameters - CHANGE FOR EVERY TRAINING
-AGENT_NAME            = "h1"
-MODEL_NAME            = "new-epsilon"
+AGENT_NAME            = "h2"
+MODEL_NAME            = "removed-junk"
 TRAINING_ROUNDS       = 1000
 
 
@@ -151,7 +151,7 @@ def act(self, game_state: dict) -> str:
     round = game_state['round']
     self.logger.debug(f"act(): Round {round}, Step {game_state['step']}:")
     
-    if self.train:  self.timer_act.start()
+    #if self.train:  self.timer_act.start()
 
     features                  = state_to_features(self, game_state)
     direction_features        = features[:4]
@@ -161,17 +161,12 @@ def act(self, game_state: dict) -> str:
 
     eps   = epsilon(round)
     if self.train:
-        sorted_policy, label = epsilon_greedy(random_argmax_1d(self.model[state_indices]), eps)
+        sorted_policy, label \
+               = epsilon_greedy(random_argmax_1d(self.model[state_indices]), eps)
         policy = np.append(sorting_indices, np.array([4,5]))[sorted_policy]
         action = ACTIONS[policy]
         self.state_indices.append(state_indices)
         self.sorted_policies.append(sorted_policy)
-
-        '''
-        self.unsorted_policies.append(policy) # for debugging purpose
-        self.unsorted_features.append(features)
-        self.sorted_features.append(sorted_features)
-        '''
 
     else:
         sorted_policy = random_argmax_1d(self.model[state_indices])
@@ -185,10 +180,12 @@ def act(self, game_state: dict) -> str:
     self.logger.debug(f"act(): Performed {label} action {action}")
     
     # Timing this function
+    '''
     if self.train: 
         act_time = self.timer_act.stop()
         self.act_times.append(act_time)
-
+    '''
+    
     return action 
 
 
