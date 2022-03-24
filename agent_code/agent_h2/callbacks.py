@@ -17,8 +17,8 @@ import numpy as np
 
 # Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME            = "h2"
-MODEL_NAME            = "new"
-TRAINING_ROUNDS       = 100
+MODEL_NAME            = "debug_test_3"
+TRAINING_ROUNDS       = 1000
 
 
 # Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
@@ -29,7 +29,7 @@ EPSILON_AT_ROUND_LAST = 0.01
 # Hyperparameters for Q-update - CHANGE IF YOU WANT
 ALPHA = 0.1
 GAMMA = 1
-MODE  = "SARSA"   # "SARSA" or "Q-Learning"
+MODE  = "Q-Learning"   # "SARSA" or "Q-Learning"
 N     = 5             # N-step Q-learning
 
 
