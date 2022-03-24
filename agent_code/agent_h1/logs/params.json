@@ -1,8 +1,8 @@
 {
     "training": {
         "AGENT_NAME": "h1",
-        "MODEL_NAME": "debugged_test",
-        "TRAINING_ROUNDS": 1000,
+        "MODEL_NAME": "debugged_test_longer",
+        "TRAINING_ROUNDS": 10000,
         "EPSILON_AT_ROUND_ZERO": 1,
         "EPSILON_AT_ROUND_LAST": 0.01
     },
