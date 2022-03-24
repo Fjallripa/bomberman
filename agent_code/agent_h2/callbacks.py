@@ -1,5 +1,5 @@
-# Callbacks for agent_h1
-# ======================
+# Callbacks for agent_h2b
+# =======================
 
 
 import os
@@ -16,11 +16,16 @@ import numpy as np
 # ----------------
 
 # Training parameters - CHANGE FOR EVERY TRAINING
-AGENT_NAME            = "h2"
-MODEL_NAME            = "debug_test_2"
-TRAINING_ROUNDS       = 1000
+AGENT_NAME            = "h2b"
+MODEL_NAME            = "sa-counter-test"
+TRAINING_ROUNDS       = 100
+
+
+# Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
 EPSILON_AT_ROUND_ZERO = 1
-EPSILON_AT_ROUND_LAST = 0.01
+EPSILON_THRESHOLD     = 0.1
+EPSILON_AT_INFINITY   = 0.01
+THRESHOLD_FRACTION    = 0.2
 
 
 # Hyperparameters for Q-update - CHANGE IF YOU WANT
@@ -66,6 +71,11 @@ for x in range(1, COLS-1):
 # Derive model file name
 model_file = f"model_{AGENT_NAME}_{MODEL_NAME}.pt"
 
+# Derive constants for epsilon annealing
+A               = EPSILON_AT_ROUND_ZERO - EPSILON_AT_INFINITY
+ROUND_THRESHOLD = int(TRAINING_ROUNDS * THRESHOLD_FRACTION)
+L               = 1 / ROUND_THRESHOLD * np.log(A / (EPSILON_THRESHOLD - EPSILON_AT_INFINITY))
+
 
 
 
@@ -92,14 +102,17 @@ def setup(self):
         params_file = 'logs/params.json'
         params             = {}
         params['training'] = {}
+        params['epsilon']  = {}
         params['Q-update'] = {}
         params['agent']    = {}
 
         params['training']['AGENT_NAME']            = AGENT_NAME
         params['training']['MODEL_NAME']            = MODEL_NAME
         params['training']['TRAINING_ROUNDS']       = TRAINING_ROUNDS
-        params['training']['EPSILON_AT_ROUND_ZERO'] = EPSILON_AT_ROUND_ZERO
-        params['training']['EPSILON_AT_ROUND_LAST'] = EPSILON_AT_ROUND_LAST
+        params['epsilon']['EPSILON_AT_ROUND_ZERO'] = EPSILON_AT_ROUND_ZERO
+        params['epsilon']['EPSILON_THRESHOLD']     = EPSILON_THRESHOLD
+        params['epsilon']['EPSILON_AT_INFINITY']   = EPSILON_AT_INFINITY
+        params['epsilon']['THRESHOLD_FRACTION']    = THRESHOLD_FRACTION
         params['Q-update']['ALPHA'] = ALPHA
         params['Q-update']['GAMMA'] = GAMMA
         params['Q-update']['MODE']  = MODE
@@ -138,7 +151,7 @@ def act(self, game_state: dict) -> str:
     round = game_state['round']
     self.logger.debug(f"act(): Round {round}, Step {game_state['step']}:")
     
-    if self.train:  self.timer_act.start()
+    #if self.train:  self.timer_act.start()
 
     features                  = state_to_features(self, game_state)
     direction_features        = features[:4]
@@ -148,17 +161,12 @@ def act(self, game_state: dict) -> str:
 
     eps   = epsilon(round)
     if self.train:
-        sorted_policy, label = epsilon_greedy(random_argmax_1d(self.model[state_indices]), eps)
+        sorted_policy, label \
+               = epsilon_greedy(random_argmax_1d(self.model[state_indices]), eps)
         policy = np.append(sorting_indices, np.array([4,5]))[sorted_policy]
         action = ACTIONS[policy]
         self.state_indices.append(state_indices)
         self.sorted_policies.append(sorted_policy)
-
-        '''
-        self.unsorted_policies.append(policy) # for debugging purpose
-        self.unsorted_features.append(features)
-        self.sorted_features.append(sorted_features)
-        '''
 
     else:
         sorted_policy = random_argmax_1d(self.model[state_indices])
@@ -172,10 +180,12 @@ def act(self, game_state: dict) -> str:
     self.logger.debug(f"act(): Performed {label} action {action}")
     
     # Timing this function
+    '''
     if self.train: 
         act_time = self.timer_act.stop()
         self.act_times.append(act_time)
-
+    '''
+    
     return action 
 
 
@@ -186,10 +196,8 @@ def act(self, game_state: dict) -> str:
 # -----------------
 
 def epsilon (round):
-    # Epsilon annealing through exponential decrease
-    epsilon_at_round_one  = np.power(EPSILON_AT_ROUND_LAST / EPSILON_AT_ROUND_ZERO, 
-                                    1 / TRAINING_ROUNDS)  # n-th root of epsilon_at_last_round
-    return EPSILON_AT_ROUND_ZERO * np.power(epsilon_at_round_one, round)
+    return A * np.exp(- L * round) + EPSILON_AT_INFINITY
+
 
 
 def state_to_features(self, game_state: dict) -> np.array:
