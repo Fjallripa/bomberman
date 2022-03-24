@@ -17,8 +17,9 @@ import numpy as np
 
 # Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME            = "h2b"
-MODEL_NAME            = "rewards-check"
+MODEL_NAME            = "test_mode_3_&_dumb_map_debug"
 TRAINING_ROUNDS       = 1000
+COINS                 = 50 # maximal amount of coins; scenario dependent: classicaly = 7, coin-heaven / loot-box = 50
 
 
 # Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
@@ -27,7 +28,7 @@ if EPSILON_MODE == "experience":
     EPSILON_AT_START     = 1
     EPSILON_THRESHOLD    = 0.1
     EPSILON_AT_INFINITY  = 0.01
-    THRESHOLD_EXPERIENCE = 100
+    THRESHOLD_EXPERIENCE = 300
 if EPSILON_MODE == "rounds":
     EPSILON_AT_ROUND_ZERO = 1
     EPSILON_THRESHOLD     = 0.1
@@ -40,7 +41,6 @@ ALPHA = 0.1
 GAMMA = 1
 MODE  = "SARSA"   # "SARSA" or "Q-Learning"
 N     = 5             # N-step Q-learning
-
 
 # Hyperparameters for agent behavior - CHANGE IF YOU WANT
 FOE_TRIGGER_DISTANCE = 5
@@ -137,6 +137,7 @@ def setup(self):
         params['Q-update']['N']     = N
         params['agent']['FOE_TRIGGER_DISTANCE'] = FOE_TRIGGER_DISTANCE
         params['agent']['STRIKING_DISTANCE']    = STRIKING_DISTANCE
+        params['agent']['COINS']                = COINS            
         
         with open(params_file, 'w') as file:
             json.dump(params, file, indent = 4)
@@ -151,9 +152,6 @@ def setup(self):
         self.logger.info(f"Loading model {model_file} from saved state.")
         with open(model_file, "rb") as file:
             self.model = pickle.load(file)
-
-    # Define dumb_bombing_map 
-    self.dumb_bombing_map = np.zeros((COLS, ROWS)) 
 
 
 
@@ -263,6 +261,19 @@ def state_to_features(self, game_state: dict) -> np.array:
 
     neighbors = own_position + DIRECTIONS
 
+    ## Define variables for updates & reset for each round
+    if game_state['step'] == 1:
+        self.dumb_bombing_map = np.zeros((COLS, ROWS)) 
+        self.cannot_bomb_ticker = 0
+        self.previous_collectable_coins = []
+        self.already_collected_coins = 0
+        self.logger.debug(f'stf(): Updated dumb_bombing_map and previous_collectable_coins.')
+
+    ## count already collected coins
+    for coin in self.previous_collectable_coins: 
+        if coin not in collectable_coins:
+            self.already_collected_coins += 1
+    self.logger.debug(f'stf(): # coins collected = {self.already_collected_coins}')
     
     # 1. Calculate proximity map
     distance_map, reachability_map, direction_map = proximity_map(own_position, crate_map)
@@ -289,8 +300,11 @@ def state_to_features(self, game_state: dict) -> np.array:
     
     # Don't place a bomb if you're not able to
     if not can_place_bomb: 
-        self.dump_bombing_map = np.zeros((COLS, ROWS)) # forget all memorized dumb bombing spots 
         bombing_is_dumb = True 
+        self.cannot_bomb_ticker = (self.cannot_bomb_ticker % 6) + 1
+        if self.cannot_bomb_ticker == 1:
+            self.dumb_bombing_map = np.zeros((COLS, ROWS)) # forget all memorized dumb bombing spots 
+            self.logger.debug(f'stf(): Updated dumb_bombing_map.')
     
     # Escape bombs that are about to explode
     for (bomb_position, bomb_timer) in bombs:
@@ -325,7 +339,7 @@ def state_to_features(self, game_state: dict) -> np.array:
     else:
         min_foe_distance    = DEFAULT_DISTANCE    
     
-    if min_foe_distance <= FOE_TRIGGER_DISTANCE:
+    if min_foe_distance <= FOE_TRIGGER_DISTANCE or self.already_collected_coins == COINS:
         mode = 2   # Hunter mode
     elif len(reachable_coins) > 0:
         mode = 0   # Collector mode
@@ -370,6 +384,8 @@ def state_to_features(self, game_state: dict) -> np.array:
     # Mode (f6)
     features[5] = mode
 
+    # 6. Do updates for next state_to_features
+    self.previous_collectable_coins = collectable_coins
 
     return features
 
