@@ -1,5 +1,5 @@
-# Callbacks for agent_h1
-# ======================
+# Callbacks for agent_h2b
+# =======================
 
 
 import os
@@ -16,7 +16,7 @@ import numpy as np
 # ----------------
 
 # Training parameters - CHANGE FOR EVERY TRAINING
-AGENT_NAME            = "h2"
+AGENT_NAME            = "h2b"
 MODEL_NAME            = "removed-junk"
 TRAINING_ROUNDS       = 1000
 
