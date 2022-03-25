@@ -1,5 +1,5 @@
-# Training for agent_h3
-# =====================
+# Training for agent_h2b
+# ======================
 
 
 import pickle

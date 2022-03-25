@@ -1,5 +1,5 @@
-# Callbacks for agent_h2b
-# =======================
+# Callbacks for agent_h3
+# ======================
 
 
 import os
@@ -16,8 +16,8 @@ import numpy as np
 # ----------------
 
 # Training parameters - CHANGE FOR EVERY TRAINING
-AGENT_NAME            = "h2b"
-MODEL_NAME            = "staged-"
+AGENT_NAME            = "h3"
+MODEL_NAME            = "staged"
 TRAINING_ROUNDS       = 4000
 COINS                 = 9 # maximal amount of coins; scenario dependent
 
