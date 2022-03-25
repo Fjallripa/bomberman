@@ -19,8 +19,8 @@ from settings import SCENARIOS
 
 ## Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME          = "h3"
-MODEL_NAME          = "coin-collector1"
-SCENARIO            = "coin-heaven"
+MODEL_NAME          = "coin-miner2"
+SCENARIO            = "loot-box"
 TRAINING_ROUNDS     = 1000
 START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
 
