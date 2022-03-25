@@ -3,10 +3,10 @@
 
 
 import os
-import pickle
 import json
 import random
 import numpy as np
+from settings import SCENARIOS
 
 
 
@@ -15,14 +15,16 @@ import numpy as np
 # Global Constants
 # ----------------
 
-# Training parameters - CHANGE FOR EVERY TRAINING
+# Changeable Parameters
+
+## Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME            = "h3"
-MODEL_NAME            = "staged"
-TRAINING_ROUNDS       = 4000
-COINS                 = 9 # maximal amount of coins; scenario dependent
+MODEL_NAME            = "analysis-test"
+SCENARIO              = "coin-heaven"
+TRAINING_ROUNDS       = 10
+START_TRAINING_WITH   = "use_old"   # or "<other_agent_model_name>"
 
-
-# Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
+## Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
 EPSILON_MODE             = "experience"
 if EPSILON_MODE == "experience":
     EPSILON_AT_START     = 1
@@ -35,22 +37,21 @@ if EPSILON_MODE == "rounds":
     EPSILON_AT_INFINITY   = 0.01
     THRESHOLD_FRACTION    = 0.2
 
-
-# Hyperparameters for Q-update - CHANGE IF YOU WANT
+## Hyperparameters for Q-update - CHANGE IF YOU WANT
 ALPHA = 0.1
 GAMMA = 1
 MODE  = "SARSA"   # "SARSA" or "Q-Learning"
 N     = 5         # N-step Q-learning
 
-Q_INITIAL          = "RESET" # "RESET" to reset of initial Q-Table; otherwise "<file name>" within same directiory as callbacks
-Sa_COUNTER_INITIAL = "RESET" # "RESET" to reset of initial counts of components of Q-Table; otherwise "<file name>" within same directiory as callbacks
-
-# Hyperparameters for agent behavior - CHANGE IF YOU WANT
+## Hyperparameters for agent behavior - CHANGE IF YOU WANT
 FOE_TRIGGER_DISTANCE = 5
 STRIKING_DISTANCE    = 3
 
 
-# Other constants - DON'T CHANGE UNLESS JUSTIFIED
+
+# Fixed and derived constants - DON'T CHANGE UNLESS JUSTIFIED
+
+## Game constants
 ACTIONS              = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 DIRECTIONS           = np.array([(0, -1), (1, 0), (0, 1), (-1, 0)])   # UP, RIGHT, DOWN, LEFT
 DEFAULT_DISTANCE     = 1000
@@ -58,8 +59,7 @@ BOMB_COOLDOWN_TIME   = 7
 COLS = ROWS          = 17
 BLAST                = np.array([-3, -2, -1, 1, 2, 3])
 
-
-# Calculate constant BOMB_MASK one time
+## Calculate constant BOMB_MASK one time
 BOMB_MASK = np.full((COLS, ROWS, COLS, ROWS), False)
 
 x_inside = lambda x: x > 0 and x < COLS-1
@@ -78,10 +78,14 @@ for x in range(1, COLS-1):
                 BOMB_MASK[(x, y)][explosion_spots] \
                                 = True
 
-# Derive model file name
-model_file = f"model_{AGENT_NAME}_{MODEL_NAME}.pt"
+## Derive model file name
+MODEL_FILE      = f"models/model_{AGENT_NAME}_{MODEL_NAME}.npy"
+SA_COUNTER_FILE = f"models/sa_counter_{AGENT_NAME}_{MODEL_NAME}.npy"
 
-# Derive constants for epsilon annealing
+## Derive scenario settings
+COINS = SCENARIOS[SCENARIO]['COIN_COUNT']
+
+## Derive constants for epsilon annealing
 if EPSILON_MODE == "experience":
     A = EPSILON_AT_START - EPSILON_AT_INFINITY
     L = 1 / THRESHOLD_EXPERIENCE * np.log(A / (EPSILON_THRESHOLD - EPSILON_AT_INFINITY))
@@ -120,9 +124,11 @@ def setup(self):
         params['Q-update'] = {}
         params['agent']    = {}
 
-        params['training']['AGENT_NAME']            = AGENT_NAME
-        params['training']['MODEL_NAME']            = MODEL_NAME
-        params['training']['TRAINING_ROUNDS']       = TRAINING_ROUNDS
+        params['training']['AGENT_NAME']          = AGENT_NAME
+        params['training']['MODEL_NAME']          = MODEL_NAME
+        params['training']['SCENARIO']            = SCENARIO
+        params['training']['TRAINING_ROUNDS']     = TRAINING_ROUNDS
+        params['training']['START_TRAINING_WITH'] = START_TRAINING_WITH
         params['epsilon']['EPSILON_MODE']              = EPSILON_MODE
         if EPSILON_MODE == "experience":
             params['epsilon']['EPSILON_AT_START']      = EPSILON_AT_START
@@ -148,13 +154,12 @@ def setup(self):
         # Rest of setup done in setup_training()
         
 
-    elif not os.path.isfile(model_file):
-        print(f"\nError: the model file {model_file} couldn't be found!\n")
+    elif not os.path.isfile(MODEL_FILE):
+        print(f"\nError: the model file {MODEL_FILE} couldn't be found!\n")
 
     else:
-        self.logger.info(f"Loading model {model_file} from saved state.")
-        with open(model_file, "rb") as file:
-            self.model = pickle.load(file)
+        self.logger.info(f"Loading model {MODEL_FILE} from saved state.")
+        self.model = np.load(MODEL_FILE)
 
 
 

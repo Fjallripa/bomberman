@@ -1,17 +1,16 @@
-# Training for agent_h2b
-# ======================
+# Training for agent_h3
+# =====================
 
 
-import pickle
+import os
 import numpy as np
 from typing import List
 #from codetiming import Timer
 
 import events as e
-from .callbacks import AGENT_NAME, MODEL_NAME, model_file
-from .callbacks import ACTIONS
+from .callbacks import MODEL_FILE, SA_COUNTER_FILE
 from .callbacks import ALPHA, GAMMA, MODE, N
-from .callbacks import Q_INITIAL, Sa_COUNTER_INITIAL
+from .callbacks import START_TRAINING_WITH, AGENT_NAME
 
 
 
@@ -24,11 +23,10 @@ from .callbacks import Q_INITIAL, Sa_COUNTER_INITIAL
 state_count_axis_1 = 15   # number of possible feature states for first / second / third Q axis, currently 15 considering order-invariance
 state_count_axis_2 = 3    # OWN POSITION
 state_count_axis_3 = 3    # MODI
-action_count       = len(ACTIONS)   # = 6
+action_count       = 6    # len(ACTIONS)
 
 # Training analysis files
 Q_file  = lambda x: f"logs/Q_data/Q{x}.npy"
-Sa_file = "logs/state_action_counter.npy"
 #timing_file = f"logs/timing/time_{AGENT_NAME}_{MODEL_NAME}.csv"
 
 
@@ -47,19 +45,29 @@ def setup_training(self):
 
 
     # Initialize Q and state-action-counter
-    if Q_INITIAL == "RESET":
-        self.model = self.Q = np.zeros((state_count_axis_1, state_count_axis_2, state_count_axis_3, action_count)) 
+    if START_TRAINING_WITH == "RESET":
+        self.logger.info(f"Training from scratch")
+        self.logger.info(f"Initializing Q and Sa_counter with zeros.")
+        
+        self.model      = np.zeros((state_count_axis_1, state_count_axis_2, state_count_axis_3, action_count))
+        self.Q          = np.zeros_like(self.model) 
+        self.Sa_counter = np.zeros_like(self.model, dtype = int)
     else:
+        Q_INITIAL          = f"models/model_{AGENT_NAME}_{START_TRAINING_WITH}.npy"
+        SA_COUNTER_INITIAL = f"models/sa_counter_{AGENT_NAME}_{START_TRAINING_WITH}.npy"
+        
+        if not os.path.isfile(Q_INITIAL):
+            print(f"\nERROR: the inital Q-file {Q_INITIAL} couldn't be found!\n")
+        if not os.path.isfile(SA_COUNTER_INITIAL):
+            print(f"\nERROR: the inital Sa-counter-file {SA_COUNTER_INITIAL} couldn't be found!\n")
+
         self.logger.info(f"Loading inital Q from {Q_INITIAL}.")
-        with open(Q_INITIAL, "rb") as file:
-            self.model = self.Q = pickle.load(file)
-    
-    if Sa_COUNTER_INITIAL == "RESET":
-        self.Sa_counter = np.zeros_like(self.Q, dtype = int)
-    else:
-        self.logger.info(f"Loading inital Sa_counter from {Sa_COUNTER_INITIAL}.")
-        with open(Sa_COUNTER_INITIAL, "rb") as file:
-            self.Sa_counter = pickle.load(file)
+        self.logger.info(f"Loading inital Sa_counter from {SA_COUNTER_INITIAL}.")
+        
+        self.model      = np.load(Q_INITIAL)
+        self.Q          = np.load(Q_INITIAL)
+        self.Sa_counter = np.load(SA_COUNTER_INITIAL)
+        
 
     
     # Initialize training data lists
@@ -193,8 +201,8 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
   
     # Save updated Q-function as new model
     self.model = self.Q
-    with open(model_file, "wb") as file:
-        pickle.dump(self.model, file)
+    np.save(MODEL_FILE, self.model)
+    np.save(SA_COUNTER_FILE, self.Sa_counter)
 
     
     # Clean up
@@ -207,11 +215,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
 
     ## Save analysis data
     current_round = last_game_state['round']
-    with open(Q_file(current_round), "wb") as file:
-        np.save(file, self.model)
-    np.save(Sa_file, self.Sa_counter)
-
-    
+    np.save(Q_file(current_round), self.model) 
 
     ## Time the training and save the data
     '''
