@@ -1,7 +1,7 @@
 {
     "training": {
         "AGENT_NAME": "h2b",
-        "MODEL_NAME": "test_mode_3_&_dumb_map_debug",
+        "MODEL_NAME": "new-stf",
         "TRAINING_ROUNDS": 1000
     },
     "epsilon": {

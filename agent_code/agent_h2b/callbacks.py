@@ -17,9 +17,9 @@ import numpy as np
 
 # Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME            = "h2b"
-MODEL_NAME            = "new-stf"
-TRAINING_ROUNDS       = 1000
-COINS                 = 50 # maximal amount of coins; scenario dependent
+MODEL_NAME            = "4k"
+TRAINING_ROUNDS       = 4000
+COINS                 = 9 # maximal amount of coins; scenario dependent
 
 
 # Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
@@ -340,6 +340,7 @@ def state_to_features(self, game_state: dict) -> np.array:
         foe_positions_tuple = tuple(foe_positions.T)
         min_foe_distance    = np.amin(distance_map[foe_positions_tuple])
     else:
+        foe_positions       = np.array([])
         min_foe_distance    = DEFAULT_DISTANCE    
     
     if min_foe_distance <= FOE_TRIGGER_DISTANCE or self.already_collected_coins == COINS:
