@@ -20,6 +20,6 @@
     "agent": {
         "FOE_TRIGGER_DISTANCE": 5,
         "STRIKING_DISTANCE": 3,
-        "COINS": 50
+        "COINS": 0
     }
 }

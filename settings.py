@@ -23,6 +23,11 @@ SCENARIOS = {
         "CRATE_DENSITY": 0.75,
         "COIN_COUNT": 50
     },
+    "empty": {
+        "CRATE_DENSITY": 0,
+        "COIN_COUNT": 0
+    },
+
     # This is the tournament game mode
     "classic": {
         "CRATE_DENSITY": 0.75,
