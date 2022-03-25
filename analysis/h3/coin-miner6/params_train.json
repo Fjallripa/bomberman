@@ -1,0 +1,27 @@
+{
+    "training": {
+        "AGENT_NAME": "h3",
+        "MODEL_NAME": "coin-miner6",
+        "SCENARIO": "loot-box",
+        "TRAINING_ROUNDS": 1000,
+        "START_TRAINING_WITH": "coin-collector1-10x"
+    },
+    "epsilon": {
+        "EPSILON_MODE": "rounds",
+        "EPSILON_AT_ROUND_ZERO": 1,
+        "EPSILON_THRESHOLD": 0.1,
+        "EPSILON_AT_INFINITY": 0.01,
+        "THRESHOLD_FRACTION": 0.2
+    },
+    "Q-update": {
+        "ALPHA": 0.1,
+        "GAMMA": 1,
+        "MODE": "SARSA",
+        "N": 5
+    },
+    "agent": {
+        "FOE_TRIGGER_DISTANCE": 5,
+        "STRIKING_DISTANCE": 3,
+        "COINS": 50
+    }
+}

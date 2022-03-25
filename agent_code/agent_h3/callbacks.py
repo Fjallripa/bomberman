@@ -19,13 +19,13 @@ from settings import SCENARIOS
 
 ## Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME          = "h3"
-MODEL_NAME          = "coin-miner5"
+MODEL_NAME          = "coin-miner7"
 SCENARIO            = "loot-box"
-TRAINING_ROUNDS     = 2000
-START_TRAINING_WITH = "coin-miner3"   # "RESET" or "<model_name>"
+TRAINING_ROUNDS     = 5000
+START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
 
 ## Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
-EPSILON_MODE             = "rounds"
+EPSILON_MODE             = "old"
 if EPSILON_MODE == "experience":
     EPSILON_AT_START     = 1
     EPSILON_THRESHOLD    = 0.1
@@ -36,6 +36,9 @@ if EPSILON_MODE == "rounds":
     EPSILON_THRESHOLD     = 0.1
     EPSILON_AT_INFINITY   = 0.01
     THRESHOLD_FRACTION    = 0.2
+if EPSILON_MODE == "old":
+    EPSILON_AT_ROUND_ZERO = 0.5
+    EPSILON_AT_ROUND_LAST = 0.01
 
 ## Hyperparameters for Q-update - CHANGE IF YOU WANT
 ALPHA = 0.1
@@ -93,7 +96,9 @@ if EPSILON_MODE == "rounds":
     A               = EPSILON_AT_ROUND_ZERO - EPSILON_AT_INFINITY
     ROUND_THRESHOLD = int(TRAINING_ROUNDS * THRESHOLD_FRACTION)
     L               = 1 / ROUND_THRESHOLD * np.log(A / (EPSILON_THRESHOLD - EPSILON_AT_INFINITY))
-
+if EPSILON_MODE == "old":
+    EPSILON_AT_ROUND_ONE  = np.power(EPSILON_AT_ROUND_LAST / EPSILON_AT_ROUND_ZERO, 
+                                    1 / TRAINING_ROUNDS)  # n-th root of epsilon_at_last_round
 
 
 
@@ -140,6 +145,9 @@ def setup(self):
             params['epsilon']['EPSILON_THRESHOLD']     = EPSILON_THRESHOLD
             params['epsilon']['EPSILON_AT_INFINITY']   = EPSILON_AT_INFINITY
             params['epsilon']['THRESHOLD_FRACTION']    = THRESHOLD_FRACTION
+        if EPSILON_MODE == "old":
+            params['epsilon']['EPSILON_AT_ROUND_ZERO'] = EPSILON_AT_ROUND_ZERO
+            params['epsilon']['EPSILON_AT_ROUND_LAST'] = EPSILON_AT_ROUND_LAST
         params['Q-update']['ALPHA'] = ALPHA
         params['Q-update']['GAMMA'] = GAMMA
         params['Q-update']['MODE']  = MODE
@@ -192,8 +200,10 @@ def act(self, game_state: dict) -> str:
         if EPSILON_MODE == "experience":
             seen_this_n_times_before = np.sum(self.Sa_counter[state_indices])
             eps                      = epsilon(seen_this_n_times_before)
-        if EPSILON_MODE == "rounds":
+        elif EPSILON_MODE == "rounds":
             eps                      = epsilon(round)
+        elif EPSILON_MODE == "old":
+            eps                      = epsilon_old(round)
 
         # Choose policy action with probability 1 - eps
         sorted_policy, label \
@@ -235,6 +245,10 @@ def act(self, game_state: dict) -> str:
 
 def epsilon (occurances):
     return A * np.exp(- L * occurances) + EPSILON_AT_INFINITY
+
+
+def epsilon_old(round):
+    return EPSILON_AT_ROUND_ZERO * np.power(EPSILON_AT_ROUND_ONE, round)
 
 
 
