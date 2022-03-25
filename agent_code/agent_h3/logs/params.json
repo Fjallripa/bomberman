@@ -1,10 +1,10 @@
 {
     "training": {
         "AGENT_NAME": "h3",
-        "MODEL_NAME": "analysis-test",
+        "MODEL_NAME": "coin-collector1",
         "SCENARIO": "coin-heaven",
-        "TRAINING_ROUNDS": 10,
-        "START_TRAINING_WITH": "use_old"
+        "TRAINING_ROUNDS": 1000,
+        "START_TRAINING_WITH": "RESET"
     },
     "epsilon": {
         "EPSILON_MODE": "experience",

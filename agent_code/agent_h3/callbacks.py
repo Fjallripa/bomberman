@@ -18,11 +18,11 @@ from settings import SCENARIOS
 # Changeable Parameters
 
 ## Training parameters - CHANGE FOR EVERY TRAINING
-AGENT_NAME            = "h3"
-MODEL_NAME            = "coin-collector1"
-SCENARIO              = "coin-heaven"
-TRAINING_ROUNDS       = 1000
-START_TRAINING_WITH   = "RESET"   # "RESET" or "<model_name>"
+AGENT_NAME          = "h3"
+MODEL_NAME          = "coin-collector1"
+SCENARIO            = "coin-heaven"
+TRAINING_ROUNDS     = 1000
+START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
 
 ## Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
 EPSILON_MODE             = "experience"
