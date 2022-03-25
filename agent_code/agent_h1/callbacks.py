@@ -17,7 +17,7 @@ import numpy as np
 
 # Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME            = "h1"
-MODEL_NAME            = "new-epsilon"
+MODEL_NAME            = "debugged_test_longer"
 TRAINING_ROUNDS       = 1000
 
 
