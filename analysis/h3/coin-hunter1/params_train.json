@@ -4,6 +4,8 @@
         "MODEL_NAME": "coin-hunter1",
         "SCENARIO": "loot-box",
         "OTHER_AGENTS": [
+            "peaceful",
+            "peaceful",
             "peaceful"
         ],
         "TRAINING_ROUNDS": 1000,
