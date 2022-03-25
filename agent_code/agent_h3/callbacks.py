@@ -19,10 +19,10 @@ from settings import SCENARIOS
 
 ## Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME          = "h3"
-MODEL_NAME          = "peaceful_hunt_5"
-SCENARIO            = "empty"
-TRAINING_ROUNDS     = 1000
-START_TRAINING_WITH = "peaceful_hunt_4"   # "RESET" or "<model_name>"
+MODEL_NAME          = "coin-miner8"
+SCENARIO            = "loot-box"
+TRAINING_ROUNDS     = 5000
+START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
 
 ## Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
 EPSILON_MODE             = "old"
@@ -37,7 +37,7 @@ if EPSILON_MODE == "rounds":
     EPSILON_AT_INFINITY   = 0.01
     THRESHOLD_FRACTION    = 0.2
 if EPSILON_MODE == "old":
-    EPSILON_AT_ROUND_ZERO = 0.5
+    EPSILON_AT_ROUND_ZERO = 1
     EPSILON_AT_ROUND_LAST = 0.01
 
 ## Hyperparameters for Q-update - CHANGE IF YOU WANT
