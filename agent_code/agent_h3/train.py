@@ -75,8 +75,6 @@ def setup_training(self):
     self.sorted_policies = []
     self.rewards         = []
     
-    # Logging
-    self.logger.debug("str(): Starting training by initializing Q." + '\n' * 2)
 
     # Time training and log it
     '''

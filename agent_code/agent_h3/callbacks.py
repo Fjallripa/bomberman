@@ -19,10 +19,10 @@ from settings import SCENARIOS
 
 ## Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME          = "h3"
-MODEL_NAME          = "coin-miner4"
+MODEL_NAME          = "coin-miner5"
 SCENARIO            = "loot-box"
-TRAINING_ROUNDS     = 1000
-START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
+TRAINING_ROUNDS     = 2000
+START_TRAINING_WITH = "coin-miner3"   # "RESET" or "<model_name>"
 
 ## Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
 EPSILON_MODE             = "rounds"
