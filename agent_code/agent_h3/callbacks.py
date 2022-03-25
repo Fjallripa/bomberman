@@ -22,7 +22,7 @@ AGENT_NAME            = "h3"
 MODEL_NAME            = "analysis-test"
 SCENARIO              = "coin-heaven"
 TRAINING_ROUNDS       = 10
-START_TRAINING_WITH   = "use_old"   # or "<other_agent_model_name>"
+START_TRAINING_WITH   = "use_old"   # "RESET" or "<model_name>"
 
 ## Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
 EPSILON_MODE             = "experience"
