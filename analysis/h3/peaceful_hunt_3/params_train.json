@@ -1,0 +1,25 @@
+{
+    "training": {
+        "AGENT_NAME": "h3",
+        "MODEL_NAME": "peaceful_hunt_3",
+        "SCENARIO": "empty",
+        "TRAINING_ROUNDS": 1000,
+        "START_TRAINING_WITH": "RESET"
+    },
+    "epsilon": {
+        "EPSILON_MODE": "old",
+        "EPSILON_AT_ROUND_ZERO": 1,
+        "EPSILON_AT_ROUND_LAST": 0.01
+    },
+    "Q-update": {
+        "ALPHA": 0.1,
+        "GAMMA": 1,
+        "MODE": "SARSA",
+        "N": 5
+    },
+    "agent": {
+        "FOE_TRIGGER_DISTANCE": 5,
+        "STRIKING_DISTANCE": 3,
+        "COINS": 0
+    }
+}
