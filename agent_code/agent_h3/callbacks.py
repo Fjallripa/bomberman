@@ -19,10 +19,11 @@ from settings import SCENARIOS
 
 ## Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME          = "h3"
-MODEL_NAME          = "coin-miner8"
+MODEL_NAME          = "coin-hunter1"
 SCENARIO            = "loot-box"
-TRAINING_ROUNDS     = 5000
-START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
+OTHER_AGENTS        = ["peaceful"]
+TRAINING_ROUNDS     = 1000
+START_TRAINING_WITH = "coin-miner7"   # "RESET" or "<model_name>"
 
 ## Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
 EPSILON_MODE             = "old"
@@ -34,10 +35,10 @@ if EPSILON_MODE == "experience":
 if EPSILON_MODE == "rounds":
     EPSILON_AT_ROUND_ZERO = 1
     EPSILON_THRESHOLD     = 0.1
-    EPSILON_AT_INFINITY   = 0.01
-    THRESHOLD_FRACTION    = 0.2
+    EPSILON_AT_INFINITY   = 0
+    THRESHOLD_FRACTION    = 0.33
 if EPSILON_MODE == "old":
-    EPSILON_AT_ROUND_ZERO = 1
+    EPSILON_AT_ROUND_ZERO = 0.5
     EPSILON_AT_ROUND_LAST = 0.01
 
 ## Hyperparameters for Q-update - CHANGE IF YOU WANT
@@ -132,6 +133,7 @@ def setup(self):
         params['training']['AGENT_NAME']          = AGENT_NAME
         params['training']['MODEL_NAME']          = MODEL_NAME
         params['training']['SCENARIO']            = SCENARIO
+        params['training']['OTHER_AGENTS']        = OTHER_AGENTS
         params['training']['TRAINING_ROUNDS']     = TRAINING_ROUNDS
         params['training']['START_TRAINING_WITH'] = START_TRAINING_WITH
         params['epsilon']['EPSILON_MODE']              = EPSILON_MODE

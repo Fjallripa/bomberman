@@ -1,10 +1,13 @@
 {
     "training": {
         "AGENT_NAME": "h3",
-        "MODEL_NAME": "coin-miner8",
+        "MODEL_NAME": "coin-hunter1",
         "SCENARIO": "loot-box",
-        "TRAINING_ROUNDS": 5000,
-        "START_TRAINING_WITH": "RESET"
+        "OTHER_AGENTS": [
+            "peaceful"
+        ],
+        "TRAINING_ROUNDS": 1000,
+        "START_TRAINING_WITH": "coin-miner7"
     },
     "epsilon": {
         "EPSILON_MODE": "old",
@@ -20,6 +23,6 @@
     "agent": {
         "FOE_TRIGGER_DISTANCE": 5,
         "STRIKING_DISTANCE": 3,
-        "COINS": 0
+        "COINS": 50
     }
 }
