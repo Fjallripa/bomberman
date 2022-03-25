@@ -1,9 +1,9 @@
 {
     "training": {
         "AGENT_NAME": "h3",
-        "MODEL_NAME": "coin-miner8",
-        "SCENARIO": "loot-box",
-        "TRAINING_ROUNDS": 5000,
+        "MODEL_NAME": "peaceful_hunt_4",
+        "SCENARIO": "empty",
+        "TRAINING_ROUNDS": 1000,
         "START_TRAINING_WITH": "RESET"
     },
     "epsilon": {
