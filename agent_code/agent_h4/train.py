@@ -1,16 +1,17 @@
-# Training for agent_h3
+# Training for agent_h4
 # =====================
 
 
 import os
+from turtle import update
 import numpy as np
 from typing import List
 #from codetiming import Timer
 
-import events as e
 from .callbacks import MODEL_FILE, SA_COUNTER_FILE
-from .callbacks import ALPHA, GAMMA, MODE, N
+from .callbacks import ALPHA, GAMMA, MODE, N, REWARDS
 from .callbacks import START_TRAINING_WITH, AGENT_NAME
+from .callbacks import random_argmax
 
 
 
@@ -50,7 +51,8 @@ def setup_training(self):
         self.logger.info(f"Initializing Q and Sa_counter with zeros.")
         
         self.model      = np.zeros((state_count_axis_1, state_count_axis_2, state_count_axis_3, action_count))
-        self.Q          = np.zeros_like(self.model) 
+        self.Q_A        = np.zeros_like(self.model)
+        self.Q_B        = np.zeros_like(self.model)
         self.Sa_counter = np.zeros_like(self.model, dtype = int)
     else:
         Q_INITIAL          = f"models/model_{AGENT_NAME}_{START_TRAINING_WITH}.npy"
@@ -65,7 +67,8 @@ def setup_training(self):
         self.logger.info(f"Loading inital Sa_counter from {SA_COUNTER_INITIAL}.")
         
         self.model      = np.load(Q_INITIAL)
-        self.Q          = np.load(Q_INITIAL)
+        self.Q_A        = np.load(Q_INITIAL)
+        self.Q_B        = np.load(Q_INITIAL)
         self.Sa_counter = np.load(SA_COUNTER_INITIAL)
         
 
@@ -175,10 +178,10 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     self.logger.debug(f'eor(): Received reward = {reward}')
 
 
-    # Updating Q by iterating through every game step
-    sum_of_gain_per_Sa = np.zeros_like(self.Q)
-    number_of_Sa_steps = np.zeros_like(self.Q, dtype = int)
-
+    # Alernatingly updating Q_A and Q_B by collecting rewards from all encountered states and estimating their gain.
+    current_round      = last_game_state['round']
+    sum_of_gain_per_Sa = np.zeros_like(self.model)
+    number_of_Sa_steps = np.zeros_like(self.model, dtype = int)
 
     for step in range(round_length):
         # Calculate the state-action pair (S, a)
@@ -186,19 +189,22 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         sorted_policy = self.sorted_policies[step]
         
         # Update gain for (S, a)
-        sum_of_gain_per_Sa[state_indices][sorted_policy] += Q_update(self, step)
+        sum_of_gain_per_Sa[state_indices][sorted_policy] += Q_update(self, step, current_round)
         number_of_Sa_steps[state_indices][sorted_policy] += 1
 
-    self.Sa_counter += number_of_Sa_steps  # Collects total number of encounters with each (S, a) during training.
+    self.Sa_counter += number_of_Sa_steps   # Collects total number of encounters with each (S, a) during training.
 
 
     # Q-Update
-    occured_Sa         = number_of_Sa_steps != 0 # True if Sa occured in last round, else False 
-    self.Q[occured_Sa] = self.Q[occured_Sa] * (1 - ALPHA) + ALPHA * sum_of_gain_per_Sa[occured_Sa] / number_of_Sa_steps[occured_Sa]
+    occured_Sa    = number_of_Sa_steps != 0   # True if Sa occured in last round, else False 
+    expected_gain = sum_of_gain_per_Sa[occured_Sa] / number_of_Sa_steps[occured_Sa]
+    
+    if current_round % 2 == 1:  self.Q_A[occured_Sa] = (1 - ALPHA) * self.Q_A[occured_Sa] + ALPHA * expected_gain
+    else:                       self.Q_B[occured_Sa] = (1 - ALPHA) * self.Q_B[occured_Sa] + ALPHA * expected_gain
   
   
     # Save updated Q-function as new model
-    self.model = self.Q
+    self.model = self.Q_A  if (current_round % 2 == 1)  else self.Q_B
     np.save(MODEL_FILE, self.model)
     np.save(SA_COUNTER_FILE, self.Sa_counter)
 
@@ -212,7 +218,6 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     # Training analysis
 
     ## Save analysis data
-    current_round = last_game_state['round']
     np.save(Q_file(current_round), self.model) 
 
     ## Time the training and save the data
@@ -257,30 +262,9 @@ def reward_from_events(self, events: List[str]) -> int:
     """
     
 
-    # Auxiliary Rewards for Task 1
-    game_rewards = {
-        e.COIN_COLLECTED: 5,
-        e.INVALID_ACTION: -1,
-        e.KILLED_OPPONENT: 100,
-        e.GOT_KILLED: -5,
-        
-    }
-    # New game_rewards
-    '''
-        e.COIN_COLLECTED:   5,
-        e.INVALID_ACTION:  -1,
-        e.KILLED_SELF:    -25,
-        e.GOT_KILLED:     -25,
-        e.KILLED_OPPONENT: 25,   
-    '''
-    '''
-        e.COIN_COLLECTED: 5,
-        e.INVALID_ACTION: -1,
-        e.KILLED_SELF: -1,
-        e.OPPONENT_ELIMINATED: 25
-    '''
+    game_rewards = REWARDS
+    reward_sum   = 0
     
-    reward_sum = 0
     for event in events:
         if event in game_rewards:
             reward_sum += game_rewards[event]
@@ -291,7 +275,7 @@ def reward_from_events(self, events: List[str]) -> int:
 
 
 
-def Q_update(self, t, mode = MODE, n = N,  gamma = GAMMA):
+def Q_update(self, t, round, mode = MODE, n = N,  gamma = GAMMA):
     """
     Computes the new value during Q-learning.
 
@@ -309,21 +293,28 @@ def Q_update(self, t, mode = MODE, n = N,  gamma = GAMMA):
     """
     
     
-    t_plus_n = min(t+n, len(self.state_indices)-1)
-    v = 0 # initialize just due to a assignment - reference bug otherwise
+    # Initializations
+    t_plus_n   = min(t+n, len(self.state_indices)-1)
+    v          = 0
+    reward_sum = 0
 
     # Approximate Q after next n steps
-    state_next_n_steps_1, state__next_n_steps_2, state_next_n_steps_3 = self.state_indices[t_plus_n]
+    state_indices = self.state_indices[t_plus_n]
 
     if mode == "Q-Learning":
-        v = np.amax(self.Q[state_next_n_steps_1, state__next_n_steps_2, state_next_n_steps_3])
+        if round % 2 == 1:
+            best_action_A = random_argmax(self.Q_A[state_indices])
+            v             = self.Q_B[state_indices][best_action_A]
+        else:
+            best_action_B = random_argmax(self.Q_B[state_indices])
+            v             = self.Q_A[state_indices][best_action_B]
     
     elif mode == "SARSA":
-        action_next_n_steps = self.sorted_policies[t_plus_n]
-        v = self.Q[state_next_n_steps_1, state__next_n_steps_2, state_next_n_steps_3, action_next_n_steps]
+        chosen_action = self.sorted_policies[t_plus_n]
+        if round % 2 == 1:  v = self.Q_B[state_indices][chosen_action]
+        else:               v = self.Q_A[state_indices][chosen_action]
     
     # Compute Reward Sum for next n steps
-    reward_sum = 0
     for s in range(t, t_plus_n):
         reward_sum += gamma**(s-t) * self.rewards[s]
     

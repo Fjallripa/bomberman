@@ -1,0 +1,26 @@
+{
+    "training": {
+        "AGENT_NAME": "h4",
+        "MODEL_NAME": "coin-miner1",
+        "SCENARIO": "loot-box",
+        "OTHER_AGENTS": [],
+        "TRAINING_ROUNDS": 1500,
+        "START_TRAINING_WITH": "RESET"
+    },
+    "epsilon": {
+        "EPSILON_MODE": "old",
+        "EPSILON_AT_ROUND_ZERO": 0.5,
+        "EPSILON_AT_ROUND_LAST": 0.001
+    },
+    "Q-update": {
+        "ALPHA": 0.1,
+        "GAMMA": 1,
+        "MODE": "Q-Learning",
+        "N": 5
+    },
+    "agent": {
+        "FOE_TRIGGER_DISTANCE": 5,
+        "STRIKING_DISTANCE": 3,
+        "COINS": 50
+    }
+}

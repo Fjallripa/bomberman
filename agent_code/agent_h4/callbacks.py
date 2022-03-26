@@ -1,4 +1,4 @@
-# Callbacks for agent_h3
+# Callbacks for agent_h4
 # ======================
 
 
@@ -6,6 +6,8 @@ import os
 import json
 import random
 import numpy as np
+
+import events as e
 from settings import SCENARIOS
 
 
@@ -18,19 +20,19 @@ from settings import SCENARIOS
 # Changeable Parameters
 
 ## Training parameters - CHANGE FOR EVERY TRAINING
-AGENT_NAME          = "h3"
-MODEL_NAME          = "coin-hunter2"
-SCENARIO            = "classic"
-OTHER_AGENTS        = ["peaceful", "peaceful", "peaceful"]
+AGENT_NAME          = "h4"
+MODEL_NAME          = "coin-miner2"
+SCENARIO            = "loot-box"
+OTHER_AGENTS        = []
 TRAINING_ROUNDS     = 1500
-START_TRAINING_WITH = "coin-miner7"   # "RESET" or "<model_name>"
+START_TRAINING_WITH = "coin-collector1"   # "RESET" or "<model_name>"
 
 ## Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
-EPSILON_MODE             = "old"
+EPSILON_MODE             = "experience"
 if EPSILON_MODE == "experience":
     EPSILON_AT_START     = 1
     EPSILON_THRESHOLD    = 0.1
-    EPSILON_AT_INFINITY  = 0.01
+    EPSILON_AT_INFINITY  = 0.001
     THRESHOLD_EXPERIENCE = 500
 if EPSILON_MODE == "rounds":
     EPSILON_AT_ROUND_ZERO = 1
@@ -42,14 +44,22 @@ if EPSILON_MODE == "old":
     EPSILON_AT_ROUND_LAST = 0.001
 
 ## Hyperparameters for Q-update - CHANGE IF YOU WANT
-ALPHA = 0.1
-GAMMA = 1
-MODE  = "SARSA"   # "SARSA" or "Q-Learning"
+ALPHA = 0.01
+GAMMA = 0.9
+MODE  = "Q-Learning"   # "SARSA" or "Q-Learning"
 N     = 5         # N-step Q-learning
 
 ## Hyperparameters for agent behavior - CHANGE IF YOU WANT
 FOE_TRIGGER_DISTANCE = 5
 STRIKING_DISTANCE    = 3
+
+## Rewards
+REWARDS = {
+    e.COIN_COLLECTED: 5,
+    e.INVALID_ACTION: -1,
+    e.KILLED_OPPONENT: 100,
+    e.GOT_KILLED: -1,    
+}
 
 
 
@@ -156,7 +166,8 @@ def setup(self):
         params['Q-update']['N']     = N
         params['agent']['FOE_TRIGGER_DISTANCE'] = FOE_TRIGGER_DISTANCE
         params['agent']['STRIKING_DISTANCE']    = STRIKING_DISTANCE
-        params['agent']['COINS']                = COINS            
+        params['agent']['COINS']                = COINS   
+        params['rewards'] = REWARDS         
         
         with open(params_file, 'w') as file:
             json.dump(params, file, indent = 4)
@@ -209,7 +220,7 @@ def act(self, game_state: dict) -> str:
 
         # Choose policy action with probability 1 - eps
         sorted_policy, label \
-               = epsilon_greedy(random_argmax_1d(self.model[state_indices]), eps)
+               = epsilon_greedy(random_argmax(self.model[state_indices]), eps)
         policy = np.append(sorting_indices, np.array([4,5]))[sorted_policy]
         action = ACTIONS[policy]
         self.state_indices.append(state_indices)
@@ -217,7 +228,7 @@ def act(self, game_state: dict) -> str:
 
     else:
         # Choose policy action
-        sorted_policy = random_argmax_1d(self.model[state_indices])
+        sorted_policy = random_argmax(self.model[state_indices])
         policy        = np.append(sorting_indices, np.array([4,5]))[sorted_policy]
         action        = ACTIONS[policy]
         label         = "policy"
@@ -622,7 +633,7 @@ def features_to_indices(features):
 
   
 
-def random_argmax_1d(a):
+def random_argmax(a):
     """
     Improved np.argmax(a, axis = None):
     Unbiased (i.e. random) selection if mutliple maximal elements.
