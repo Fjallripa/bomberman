@@ -20,11 +20,11 @@ from settings import SCENARIOS
 
 ## Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME          = "h4"
-MODEL_NAME          = "coin-miner11"
+MODEL_NAME          = "coin-miner12"
 SCENARIO            = "loot-box"
 OTHER_AGENTS        = []
-TRAINING_ROUNDS     = 1000
-START_TRAINING_WITH = "coin-collector2"   # "RESET" or "<model_name>"
+TRAINING_ROUNDS     = 2000
+START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
 
 ## Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
 EPSILON_MODE = "old"
@@ -39,15 +39,15 @@ if EPSILON_MODE == "rounds":
     EPSILON_AT_INFINITY   = 0
     THRESHOLD_FRACTION    = 0.33
 if EPSILON_MODE == "old":
-    EPSILON_AT_ROUND_ZERO = 0.1
+    EPSILON_AT_ROUND_ZERO = 1
     EPSILON_AT_ROUND_LAST = 0.01
 
 ## Hyperparameters for Q-update - CHANGE IF YOU WANT
 DOUBLE_Q_LEARNING = False
-ALPHA             = 0.01
-GAMMA             = 0.8
+ALPHA             = 0.1
+GAMMA             = 1
 MODE              = "SARSA"   # "SARSA" or "Q-Learning"
-N                 = 15   # N-step Q-learning
+N                 = 5   # N-step Q-learning
 
 ## Hyperparameters for agent behavior - CHANGE IF YOU WANT
 FOE_TRIGGER_DISTANCE = 5
@@ -57,6 +57,7 @@ STRIKING_DISTANCE    = 3
 REWARDS = {
     e.COIN_COLLECTED: 5,
     e.INVALID_ACTION: -1,
+    e.CRATE_DESTROYED: 0.5,
     e.KILLED_OPPONENT: 100,
     #e.GOT_KILLED: -1,    
 }
@@ -288,8 +289,8 @@ def state_to_features (self, game_state):
 
     # 0. Collect relevant game_state info
     own_position      = game_state['self'][3]
-    crate_map         = game_state['field']
     can_place_bomb    = game_state['self'][2]
+    crate_map         = game_state['field']
     collectable_coins = game_state['coins']
     bombs             = game_state['bombs']
     explosion_map     = game_state['explosion_map']
