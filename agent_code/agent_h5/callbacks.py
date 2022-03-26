@@ -21,7 +21,7 @@ from settings import SCENARIOS
 
 ## Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME          = "h5"
-MODEL_NAME          = "peaceful_hunt_6"
+MODEL_NAME          = "peaceful_hunt_7"
 SCENARIO            = "empty"
 OTHER_AGENTS        = ["peaceful_agent"]
 TRAINING_ROUNDS     = 1000
@@ -58,7 +58,10 @@ REWARDS = {
     e.COIN_COLLECTED: 5,
     e.INVALID_ACTION: -1,
     e.KILLED_OPPONENT: 100,
-    e.GOT_KILLED: -1,    
+    e.LOOP: -1,
+    e.WAITED_TOO_LONG: -1,
+    # e.GOT_KILLED: -1,
+
 }
 
 
