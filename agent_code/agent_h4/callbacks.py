@@ -21,14 +21,14 @@ from settings import SCENARIOS
 
 ## Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME          = "h4"
-MODEL_NAME          = "coin-miner3"
+MODEL_NAME          = "coin-miner4"
 SCENARIO            = "loot-box"
 OTHER_AGENTS        = []
 TRAINING_ROUNDS     = 1500
 START_TRAINING_WITH = "coin-collector1"   # "RESET" or "<model_name>"
 
 ## Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
-EPSILON_MODE             = "old"
+EPSILON_MODE             = "experience"
 if EPSILON_MODE == "experience":
     EPSILON_AT_START     = 1
     EPSILON_THRESHOLD    = 0.1
@@ -44,7 +44,7 @@ if EPSILON_MODE == "old":
     EPSILON_AT_ROUND_LAST = 0.001
 
 ## Hyperparameters for Q-update - CHANGE IF YOU WANT
-ALPHA = 0.01
+ALPHA = 0.1
 GAMMA = 0.9
 MODE  = "Q-Learning"   # "SARSA" or "Q-Learning"
 N     = 5         # N-step Q-learning

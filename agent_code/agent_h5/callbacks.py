@@ -1,4 +1,4 @@
-# Callbacks for agent_h3
+# Callbacks for agent_h5
 # ======================
 
 
@@ -6,6 +6,8 @@ import os
 import json
 import random
 import numpy as np
+
+import events as e
 from settings import SCENARIOS
 
 
@@ -50,6 +52,15 @@ N     = 5         # N-step Q-learning
 ## Hyperparameters for agent behavior - CHANGE IF YOU WANT
 FOE_TRIGGER_DISTANCE = 5
 STRIKING_DISTANCE    = 3
+
+## Rewards
+REWARDS = {
+    e.COIN_COLLECTED: 5,
+    e.INVALID_ACTION: -1,
+    e.KILLED_OPPONENT: 100,
+    e.GOT_KILLED: -1,    
+}
+
 
 
 
@@ -156,7 +167,8 @@ def setup(self):
         params['Q-update']['N']     = N
         params['agent']['FOE_TRIGGER_DISTANCE'] = FOE_TRIGGER_DISTANCE
         params['agent']['STRIKING_DISTANCE']    = STRIKING_DISTANCE
-        params['agent']['COINS']                = COINS            
+        params['agent']['COINS']                = COINS  
+        params['rewards'] = REWARDS                    
         
         with open(params_file, 'w') as file:
             json.dump(params, file, indent = 4)
