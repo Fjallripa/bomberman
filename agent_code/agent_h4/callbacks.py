@@ -265,7 +265,7 @@ def epsilon_old(round):
 
 
 
-def state_to_features(self, game_state: dict) -> np.array:
+def state_to_features (self, game_state):
     """
     *This is not a required function, but an idea to structure your code.*
 
@@ -285,7 +285,7 @@ def state_to_features(self, game_state: dict) -> np.array:
         return None
 
 
-    # 0. relevant game_state info
+    # 0. Collect relevant game_state info
     own_position      = game_state['self'][3]
     crate_map         = game_state['field']
     can_place_bomb    = game_state['self'][2]
@@ -298,18 +298,20 @@ def state_to_features(self, game_state: dict) -> np.array:
 
     ## Define variables for updates & reset for each round
     if game_state['step'] == 1:
-        self.dumb_bombing_map = np.zeros((COLS, ROWS)) 
-        self.cannot_bomb_ticker = 0
+        self.dumb_bombing_map           = np.zeros((COLS, ROWS)) 
+        self.cannot_bomb_ticker         = 0
         self.previous_collectable_coins = []
-        self.already_collected_coins = 0
+        self.already_collected_coins    = 0
+        
         self.logger.debug(f'stf(): Updated dumb_bombing_map and previous_collectable_coins.')
 
-    ## count already collected coins
+    ## Count already collected coins
     for coin in self.previous_collectable_coins: 
         if coin not in collectable_coins:
             self.already_collected_coins += 1
     self.logger.debug(f'stf(): # coins collected = {self.already_collected_coins}')
     
+
     # 1. Calculate proximity map
     distance_map, reachability_map, direction_map = proximity_map(own_position, crate_map)
 
@@ -385,7 +387,9 @@ def state_to_features(self, game_state: dict) -> np.array:
  
     # 4. Compute goal direction
     if mode == 0:
-        best_coins      = select_nearest(reachable_coins, distance_map)
+        coins_around_me = exclude_from(collectable_coins, own_position)  # Don't have a coin goal on f5
+        coins_i_reach   = select_reachable(coins_around_me, reachability_map)
+        best_coins      = select_nearest(coins_i_reach, distance_map)
         goals           = make_goals(best_coins, direction_map, own_position)
 
     if mode == 1:
@@ -395,13 +399,13 @@ def state_to_features(self, game_state: dict) -> np.array:
         goals                = make_goals(best_crate_spots, direction_map, own_position)
 
     if mode == 2:
-        closest_foe  = select_nearest(foe_positions, distance_map)
-        goals        = make_goals(closest_foe, direction_map, own_position)
+        closest_foe = select_nearest(foe_positions, distance_map)
+        goals       = make_goals(closest_foe, direction_map, own_position)
         if min_foe_distance <= STRIKING_DISTANCE and not bombing_is_dumb:
             goals[4] = True  
 
     # 5. Assemble feature array
-    features = np.full(6, 1)
+    features = np.full(5, 1)
     
     # Directions (f1 - f4)
     for i in range(4):
@@ -416,14 +420,12 @@ def state_to_features(self, game_state: dict) -> np.array:
         features[4] = 0
     elif goals[4]:   # own spot is a goal
         features[4] = 2
-        
-    # Mode (f6)
-    features[5] = mode
-
+    
     # 6. Do updates for next state_to_features
     self.previous_collectable_coins = collectable_coins
 
     return features
+
 
 
 def proximity_map (own_position, game_field):
@@ -520,6 +522,16 @@ def select_reachable (positions, reachability_map):
         reachable_positions = np.array(positions)
 
     return reachable_positions
+
+
+
+def exclude_from(list, item):
+    if item in list:
+        smaller_list = list.copy()
+        smaller_list.remove(item)
+        return smaller_list
+    else:
+        return list
 
 
 

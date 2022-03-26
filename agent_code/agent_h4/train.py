@@ -3,7 +3,6 @@
 
 
 import os
-from turtle import update
 import numpy as np
 from typing import List
 #from codetiming import Timer
