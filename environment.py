@@ -9,6 +9,8 @@ from threading import Event
 from time import time
 from typing import List, Tuple, Dict
 
+from collections import deque # added
+
 import numpy as np
 
 import events as e
@@ -54,6 +56,9 @@ class GenericWorld:
         self.round_statistics = {}
 
         self.running = False
+
+        # added
+        self.action_memory = deque(maxlen = 4)
 
     def setup_logging(self):
         self.logger = logging.getLogger('BombeRLeWorld')
@@ -148,6 +153,15 @@ class GenericWorld:
             agent.add_event(e.WAITED)
         else:
             agent.add_event(e.INVALID_ACTION)
+
+        # added
+        self.action_memory.append(action)
+        if len(self.action_memory) == 4:
+            if self.action_memory.count("WAIT") == 4:
+                agent.add_event(e.WAITED_TOO_LONG)
+            elif self.action_memory[0] == self.action_memory[2] and self.action_memory[1] == self.action_memory[3] and self.action_memory[0] != self.action_memory[1]:
+                agent.add_event(e.LOOP)
+
 
     def poll_and_run_agents(self):
         raise NotImplementedError()

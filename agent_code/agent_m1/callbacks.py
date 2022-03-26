@@ -7,7 +7,7 @@ import pickle
 import random
 import numpy as np
 
-model_name = "m1_debug"
+model_name = "m1_test_training_data"
 model_file = f"model_{model_name}.pt"
 
 
