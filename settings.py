@@ -23,6 +23,10 @@ SCENARIOS = {
         "CRATE_DENSITY": 0.75,
         "COIN_COUNT": 50
     },
+    "sparse-crates": {
+        "CRATE_DENSITY": 0.4,
+        "COIN_COUNT": 25
+    },
     "empty": {
         "CRATE_DENSITY": 0,
         "COIN_COUNT": 0

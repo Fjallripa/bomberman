@@ -19,10 +19,10 @@ from settings import SCENARIOS
 
 ## Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME          = "h3"
-MODEL_NAME          = "coin-miner7"
-SCENARIO            = "empty"
-OTHER_AGENTS        = ["peaceful", "peaceful", "peaceful"]
-TRAINING_ROUNDS     = 1500
+MODEL_NAME          = "coin-miner14"
+SCENARIO            = "sparse-crates"
+OTHER_AGENTS        = []
+TRAINING_ROUNDS     = 1000
 START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
 
 ## Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
@@ -38,14 +38,14 @@ if EPSILON_MODE == "rounds":
     EPSILON_AT_INFINITY   = 0
     THRESHOLD_FRACTION    = 0.33
 if EPSILON_MODE == "old":
-    EPSILON_AT_ROUND_ZERO = 0.5
-    EPSILON_AT_ROUND_LAST = 0.001
+    EPSILON_AT_ROUND_ZERO = 1
+    EPSILON_AT_ROUND_LAST = 0.01
 
 ## Hyperparameters for Q-update - CHANGE IF YOU WANT
-ALPHA = 0.01
-GAMMA = 0.9
-MODE  = "Q-Learning"   # "SARSA" or "Q-Learning"
-N     = 10         # N-step Q-learning
+ALPHA = 0.1
+GAMMA = 1
+MODE  = "SARSA"   # "SARSA" or "Q-Learning"
+N     = 5         # N-step Q-learning
 
 ## Hyperparameters for agent behavior - CHANGE IF YOU WANT
 FOE_TRIGGER_DISTANCE = 5

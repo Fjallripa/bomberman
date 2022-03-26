@@ -202,6 +202,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
   
   
     # Save updated Q-function as new model
+    self.Q_A = self.Q_B = self.Q_A   ## Hopefully undoes Double-Q-Learning
     self.model = self.Q_A  if (current_round % 2 == 1)  else self.Q_B
     np.save(MODEL_FILE, self.model)
     np.save(SA_COUNTER_FILE, self.Sa_counter)
