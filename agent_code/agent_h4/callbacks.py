@@ -4,7 +4,6 @@
 
 import os
 import json
-import random
 import numpy as np
 
 import events as e
@@ -21,14 +20,14 @@ from settings import SCENARIOS
 
 ## Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME          = "h4"
-MODEL_NAME          = "coin-miner4"
-SCENARIO            = "loot-box"
+MODEL_NAME          = "coin-collector1"
+SCENARIO            = "coin-heaven"
 OTHER_AGENTS        = []
 TRAINING_ROUNDS     = 1500
-START_TRAINING_WITH = "coin-collector1"   # "RESET" or "<model_name>"
+START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
 
 ## Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
-EPSILON_MODE             = "experience"
+EPSILON_MODE = "old"
 if EPSILON_MODE == "experience":
     EPSILON_AT_START     = 1
     EPSILON_THRESHOLD    = 0.1
@@ -40,14 +39,14 @@ if EPSILON_MODE == "rounds":
     EPSILON_AT_INFINITY   = 0
     THRESHOLD_FRACTION    = 0.33
 if EPSILON_MODE == "old":
-    EPSILON_AT_ROUND_ZERO = 0.3
+    EPSILON_AT_ROUND_ZERO = 0.5
     EPSILON_AT_ROUND_LAST = 0.001
 
 ## Hyperparameters for Q-update - CHANGE IF YOU WANT
 ALPHA = 0.1
-GAMMA = 0.9
+GAMMA = 1
 MODE  = "Q-Learning"   # "SARSA" or "Q-Learning"
-N     = 5         # N-step Q-learning
+N     = 5   # N-step Q-learning
 
 ## Hyperparameters for agent behavior - CHANGE IF YOU WANT
 FOE_TRIGGER_DISTANCE = 5
@@ -205,7 +204,7 @@ def act(self, game_state: dict) -> str:
     direction_features        = features[:4]
     sorting_indices           = np.argsort(direction_features)   # Moved sorting here to be able to log both sorted and unsorted features.
     sorted_direction_features = direction_features[sorting_indices]
-    state_indices             = features_to_indices(sorted_direction_features), features[4], features[5]
+    state_indices             = features_to_indices(sorted_direction_features), features[4]
 
     # Determine action to be taken
     if self.train:
@@ -590,8 +589,10 @@ def crate_destruction_map (crate_map, bombs):
     return number_of_crates_destroyed_map
 
 
+
 def sensible_bombing_spots (reachability_map, dumb_bombing_map):
     return reachability_map * np.logical_not(dumb_bombing_map)
+
 
 
 def best_crate_bombing_spots (distance_map, number_of_destroyed_crates_map, sensible_bombing_map):

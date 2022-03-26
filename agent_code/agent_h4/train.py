@@ -20,9 +20,8 @@ from .callbacks import random_argmax
 # -------------------------
 
 # Q-model constants 
-state_count_axis_1 = 15   # number of possible feature states for first / second / third Q axis, currently 15 considering order-invariance
+state_count_axis_1 = 15   # number of possible feature states for first / second Q axis, currently 15 considering order-invariance
 state_count_axis_2 = 3    # OWN POSITION
-state_count_axis_3 = 3    # MODI
 action_count       = 6    # len(ACTIONS)
 
 # Training analysis files
@@ -49,7 +48,7 @@ def setup_training(self):
         self.logger.info(f"Training from scratch")
         self.logger.info(f"Initializing Q and Sa_counter with zeros.")
         
-        self.model      = np.zeros((state_count_axis_1, state_count_axis_2, state_count_axis_3, action_count))
+        self.model      = np.zeros((state_count_axis_1, state_count_axis_2, action_count))
         self.Q_A        = np.zeros_like(self.model)
         self.Q_B        = np.zeros_like(self.model)
         self.Sa_counter = np.zeros_like(self.model, dtype = int)
@@ -125,7 +124,7 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     #self.timer_geo.start()
     
     # Calculating rewards
-    reward          = reward_from_events(self, events)   # give auxiliary rewards
+    reward = reward_from_events(self, events)   # give auxiliary rewards
     self.rewards.append(reward)
     
     # Logging
