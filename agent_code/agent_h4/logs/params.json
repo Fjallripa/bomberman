@@ -1,15 +1,11 @@
 {
     "training": {
-        "AGENT_NAME": "h3",
-        "MODEL_NAME": "coin-hunter2",
-        "SCENARIO": "classic",
-        "OTHER_AGENTS": [
-            "peaceful",
-            "peaceful",
-            "peaceful"
-        ],
+        "AGENT_NAME": "h4",
+        "MODEL_NAME": "coin-collector1",
+        "SCENARIO": "coin-heaven",
+        "OTHER_AGENTS": [],
         "TRAINING_ROUNDS": 1500,
-        "START_TRAINING_WITH": "coin-miner7"
+        "START_TRAINING_WITH": "RESET"
     },
     "epsilon": {
         "EPSILON_MODE": "old",
@@ -19,12 +15,12 @@
     "Q-update": {
         "ALPHA": 0.1,
         "GAMMA": 1,
-        "MODE": "SARSA",
+        "MODE": "Q-Learning",
         "N": 5
     },
     "agent": {
         "FOE_TRIGGER_DISTANCE": 5,
         "STRIKING_DISTANCE": 3,
-        "COINS": 9
+        "COINS": 50
     }
 }

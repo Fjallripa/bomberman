@@ -1,4 +1,4 @@
-# Callbacks for agent_h3
+# Callbacks for agent_h4
 # ======================
 
 
@@ -18,12 +18,12 @@ from settings import SCENARIOS
 # Changeable Parameters
 
 ## Training parameters - CHANGE FOR EVERY TRAINING
-AGENT_NAME          = "h3"
-MODEL_NAME          = "coin-hunter2"
-SCENARIO            = "classic"
-OTHER_AGENTS        = ["peaceful", "peaceful", "peaceful"]
+AGENT_NAME          = "h4"
+MODEL_NAME          = "coin-collector1"
+SCENARIO            = "coin-heaven"
+OTHER_AGENTS        = []
 TRAINING_ROUNDS     = 1500
-START_TRAINING_WITH = "coin-miner7"   # "RESET" or "<model_name>"
+START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
 
 ## Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
 EPSILON_MODE             = "old"
@@ -44,7 +44,7 @@ if EPSILON_MODE == "old":
 ## Hyperparameters for Q-update - CHANGE IF YOU WANT
 ALPHA = 0.1
 GAMMA = 1
-MODE  = "SARSA"   # "SARSA" or "Q-Learning"
+MODE  = "Q-Learning"   # "SARSA" or "Q-Learning"
 N     = 5         # N-step Q-learning
 
 ## Hyperparameters for agent behavior - CHANGE IF YOU WANT
@@ -209,7 +209,7 @@ def act(self, game_state: dict) -> str:
 
         # Choose policy action with probability 1 - eps
         sorted_policy, label \
-               = epsilon_greedy(random_argmax_1d(self.model[state_indices]), eps)
+               = epsilon_greedy(random_argmax(self.model[state_indices]), eps)
         policy = np.append(sorting_indices, np.array([4,5]))[sorted_policy]
         action = ACTIONS[policy]
         self.state_indices.append(state_indices)
@@ -217,7 +217,7 @@ def act(self, game_state: dict) -> str:
 
     else:
         # Choose policy action
-        sorted_policy = random_argmax_1d(self.model[state_indices])
+        sorted_policy = random_argmax(self.model[state_indices])
         policy        = np.append(sorting_indices, np.array([4,5]))[sorted_policy]
         action        = ACTIONS[policy]
         label         = "policy"
@@ -622,7 +622,7 @@ def features_to_indices(features):
 
   
 
-def random_argmax_1d(a):
+def random_argmax(a):
     """
     Improved np.argmax(a, axis = None):
     Unbiased (i.e. random) selection if mutliple maximal elements.
