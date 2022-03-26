@@ -1,21 +1,21 @@
 {
     "training": {
         "AGENT_NAME": "h4",
-        "MODEL_NAME": "coin-collector5",
-        "SCENARIO": "loot-box",
+        "MODEL_NAME": "coin-collector2",
+        "SCENARIO": "coin-heaven",
         "OTHER_AGENTS": [],
-        "TRAINING_ROUNDS": 1000,
+        "TRAINING_ROUNDS": 1500,
         "START_TRAINING_WITH": "RESET"
     },
     "epsilon": {
         "EPSILON_MODE": "old",
         "EPSILON_AT_ROUND_ZERO": 0.5,
-        "EPSILON_AT_ROUND_LAST": 0.01
+        "EPSILON_AT_ROUND_LAST": 0.001
     },
     "Q-update": {
         "ALPHA": 0.1,
         "GAMMA": 1,
-        "MODE": "SARSA",
+        "MODE": "Q-Learning",
         "N": 5
     },
     "agent": {
@@ -26,6 +26,7 @@
     "rewards": {
         "COIN_COLLECTED": 5,
         "INVALID_ACTION": -1,
-        "KILLED_OPPONENT": 100
+        "KILLED_OPPONENT": 100,
+        "GOT_KILLED": -1
     }
 }

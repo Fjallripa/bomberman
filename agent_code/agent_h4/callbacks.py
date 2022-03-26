@@ -20,10 +20,10 @@ from settings import SCENARIOS
 
 ## Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME          = "h4"
-MODEL_NAME          = "coin-collector1"
-SCENARIO            = "coin-heaven"
+MODEL_NAME          = "coin-collector5"
+SCENARIO            = "loot-box"
 OTHER_AGENTS        = []
-TRAINING_ROUNDS     = 1500
+TRAINING_ROUNDS     = 1000
 START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
 
 ## Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
@@ -40,12 +40,12 @@ if EPSILON_MODE == "rounds":
     THRESHOLD_FRACTION    = 0.33
 if EPSILON_MODE == "old":
     EPSILON_AT_ROUND_ZERO = 0.5
-    EPSILON_AT_ROUND_LAST = 0.001
+    EPSILON_AT_ROUND_LAST = 0.01
 
 ## Hyperparameters for Q-update - CHANGE IF YOU WANT
 ALPHA = 0.1
 GAMMA = 1
-MODE  = "Q-Learning"   # "SARSA" or "Q-Learning"
+MODE  = "SARSA"   # "SARSA" or "Q-Learning"
 N     = 5   # N-step Q-learning
 
 ## Hyperparameters for agent behavior - CHANGE IF YOU WANT
@@ -57,7 +57,7 @@ REWARDS = {
     e.COIN_COLLECTED: 5,
     e.INVALID_ACTION: -1,
     e.KILLED_OPPONENT: 100,
-    e.GOT_KILLED: -1,    
+    #e.GOT_KILLED: -1,    
 }
 
 
