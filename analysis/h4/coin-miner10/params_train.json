@@ -1,0 +1,32 @@
+{
+    "training": {
+        "AGENT_NAME": "h4",
+        "MODEL_NAME": "coin-miner10",
+        "SCENARIO": "loot-box",
+        "OTHER_AGENTS": [],
+        "TRAINING_ROUNDS": 1000,
+        "START_TRAINING_WITH": "coin-collector2"
+    },
+    "epsilon": {
+        "EPSILON_MODE": "old",
+        "EPSILON_AT_ROUND_ZERO": 0.1,
+        "EPSILON_AT_ROUND_LAST": 0.01
+    },
+    "Q-update": {
+        "DOUBLE_Q_LEARNING": false,
+        "ALPHA": 0.1,
+        "GAMMA": 1,
+        "MODE": "SARSA",
+        "N": 5
+    },
+    "agent": {
+        "FOE_TRIGGER_DISTANCE": 5,
+        "STRIKING_DISTANCE": 3,
+        "COINS": 50
+    },
+    "rewards": {
+        "COIN_COLLECTED": 5,
+        "INVALID_ACTION": -1,
+        "KILLED_OPPONENT": 100
+    }
+}

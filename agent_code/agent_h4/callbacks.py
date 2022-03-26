@@ -20,14 +20,14 @@ from settings import SCENARIOS
 
 ## Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME          = "h4"
-MODEL_NAME          = "coin-miner8"
+MODEL_NAME          = "coin-miner11"
 SCENARIO            = "loot-box"
 OTHER_AGENTS        = []
 TRAINING_ROUNDS     = 1000
 START_TRAINING_WITH = "coin-collector2"   # "RESET" or "<model_name>"
 
 ## Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
-EPSILON_MODE = "experience"
+EPSILON_MODE = "old"
 if EPSILON_MODE == "experience":
     EPSILON_AT_START     = 1
     EPSILON_THRESHOLD    = 0.1
@@ -39,14 +39,15 @@ if EPSILON_MODE == "rounds":
     EPSILON_AT_INFINITY   = 0
     THRESHOLD_FRACTION    = 0.33
 if EPSILON_MODE == "old":
-    EPSILON_AT_ROUND_ZERO = 0.5
+    EPSILON_AT_ROUND_ZERO = 0.1
     EPSILON_AT_ROUND_LAST = 0.01
 
 ## Hyperparameters for Q-update - CHANGE IF YOU WANT
-ALPHA = 0.1
-GAMMA = 1
-MODE  = "SARSA"   # "SARSA" or "Q-Learning"
-N     = 5   # N-step Q-learning
+DOUBLE_Q_LEARNING = False
+ALPHA             = 0.01
+GAMMA             = 0.8
+MODE              = "SARSA"   # "SARSA" or "Q-Learning"
+N                 = 15   # N-step Q-learning
 
 ## Hyperparameters for agent behavior - CHANGE IF YOU WANT
 FOE_TRIGGER_DISTANCE = 5
@@ -159,10 +160,11 @@ def setup(self):
         if EPSILON_MODE == "old":
             params['epsilon']['EPSILON_AT_ROUND_ZERO'] = EPSILON_AT_ROUND_ZERO
             params['epsilon']['EPSILON_AT_ROUND_LAST'] = EPSILON_AT_ROUND_LAST
-        params['Q-update']['ALPHA'] = ALPHA
-        params['Q-update']['GAMMA'] = GAMMA
-        params['Q-update']['MODE']  = MODE
-        params['Q-update']['N']     = N
+        params['Q-update']['DOUBLE_Q_LEARNING'] = DOUBLE_Q_LEARNING
+        params['Q-update']['ALPHA']             = ALPHA
+        params['Q-update']['GAMMA']             = GAMMA
+        params['Q-update']['MODE']              = MODE
+        params['Q-update']['N']                 = N
         params['agent']['FOE_TRIGGER_DISTANCE'] = FOE_TRIGGER_DISTANCE
         params['agent']['STRIKING_DISTANCE']    = STRIKING_DISTANCE
         params['agent']['COINS']                = COINS   
