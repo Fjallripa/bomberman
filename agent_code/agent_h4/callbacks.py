@@ -20,19 +20,19 @@ from settings import SCENARIOS
 
 ## Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME          = "h4"
-MODEL_NAME          = "coin-collector5"
+MODEL_NAME          = "coin-miner8"
 SCENARIO            = "loot-box"
 OTHER_AGENTS        = []
 TRAINING_ROUNDS     = 1000
-START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
+START_TRAINING_WITH = "coin-collector2"   # "RESET" or "<model_name>"
 
 ## Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
-EPSILON_MODE = "old"
+EPSILON_MODE = "experience"
 if EPSILON_MODE == "experience":
     EPSILON_AT_START     = 1
     EPSILON_THRESHOLD    = 0.1
-    EPSILON_AT_INFINITY  = 0.001
-    THRESHOLD_EXPERIENCE = 2000
+    EPSILON_AT_INFINITY  = 0.01
+    THRESHOLD_EXPERIENCE = 5000
 if EPSILON_MODE == "rounds":
     EPSILON_AT_ROUND_ZERO = 1
     EPSILON_THRESHOLD     = 0.1
