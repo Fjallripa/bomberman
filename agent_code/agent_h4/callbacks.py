@@ -6,6 +6,8 @@ import os
 import json
 import random
 import numpy as np
+
+import events as e
 from settings import SCENARIOS
 
 
@@ -19,18 +21,18 @@ from settings import SCENARIOS
 
 ## Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME          = "h4"
-MODEL_NAME          = "coin-miner1"
+MODEL_NAME          = "coin-miner2"
 SCENARIO            = "loot-box"
 OTHER_AGENTS        = []
 TRAINING_ROUNDS     = 1500
-START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
+START_TRAINING_WITH = "coin-collector1"   # "RESET" or "<model_name>"
 
 ## Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
-EPSILON_MODE             = "old"
+EPSILON_MODE             = "experience"
 if EPSILON_MODE == "experience":
     EPSILON_AT_START     = 1
     EPSILON_THRESHOLD    = 0.1
-    EPSILON_AT_INFINITY  = 0.01
+    EPSILON_AT_INFINITY  = 0.001
     THRESHOLD_EXPERIENCE = 500
 if EPSILON_MODE == "rounds":
     EPSILON_AT_ROUND_ZERO = 1
@@ -42,14 +44,22 @@ if EPSILON_MODE == "old":
     EPSILON_AT_ROUND_LAST = 0.001
 
 ## Hyperparameters for Q-update - CHANGE IF YOU WANT
-ALPHA = 0.1
-GAMMA = 1
+ALPHA = 0.01
+GAMMA = 0.9
 MODE  = "Q-Learning"   # "SARSA" or "Q-Learning"
 N     = 5         # N-step Q-learning
 
 ## Hyperparameters for agent behavior - CHANGE IF YOU WANT
 FOE_TRIGGER_DISTANCE = 5
 STRIKING_DISTANCE    = 3
+
+## Rewards
+REWARDS = {
+    e.COIN_COLLECTED: 5,
+    e.INVALID_ACTION: -1,
+    e.KILLED_OPPONENT: 100,
+    e.GOT_KILLED: -1,    
+}
 
 
 
@@ -156,7 +166,8 @@ def setup(self):
         params['Q-update']['N']     = N
         params['agent']['FOE_TRIGGER_DISTANCE'] = FOE_TRIGGER_DISTANCE
         params['agent']['STRIKING_DISTANCE']    = STRIKING_DISTANCE
-        params['agent']['COINS']                = COINS            
+        params['agent']['COINS']                = COINS   
+        params['rewards'] = REWARDS         
         
         with open(params_file, 'w') as file:
             json.dump(params, file, indent = 4)

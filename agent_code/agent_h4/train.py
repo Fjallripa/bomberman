@@ -8,9 +8,8 @@ import numpy as np
 from typing import List
 #from codetiming import Timer
 
-import events as e
 from .callbacks import MODEL_FILE, SA_COUNTER_FILE
-from .callbacks import ALPHA, GAMMA, MODE, N
+from .callbacks import ALPHA, GAMMA, MODE, N, REWARDS
 from .callbacks import START_TRAINING_WITH, AGENT_NAME
 from .callbacks import random_argmax
 
@@ -263,30 +262,9 @@ def reward_from_events(self, events: List[str]) -> int:
     """
     
 
-    # Auxiliary Rewards for Task 1
-    game_rewards = {
-        e.COIN_COLLECTED: 5,
-        e.INVALID_ACTION: -1,
-        e.KILLED_OPPONENT: 100,
-        e.GOT_KILLED: -1,
-        
-    }
-    # New game_rewards
-    '''
-        e.COIN_COLLECTED:   5,
-        e.INVALID_ACTION:  -1,
-        e.KILLED_SELF:    -25,
-        e.GOT_KILLED:     -25,
-        e.KILLED_OPPONENT: 25,   
-    '''
-    '''
-        e.COIN_COLLECTED: 5,
-        e.INVALID_ACTION: -1,
-        e.KILLED_SELF: -1,
-        e.OPPONENT_ELIMINATED: 25
-    '''
+    game_rewards = REWARDS
+    reward_sum   = 0
     
-    reward_sum = 0
     for event in events:
         if event in game_rewards:
             reward_sum += game_rewards[event]
