@@ -211,7 +211,8 @@ def setup(self):
         params['Q-update']['MODE']              = MODE
         params['Q-update']['N']                 = N
         params['Q-update']['Q_SAVE_INTERVAL']   = Q_SAVE_INTERVAL
-        params['agent']['FOE_TRIGGER_DISTANCE'] = FOE_TRIGGER_DISTANCE
+        if HUNTER_MODE_IDEA == 0:
+            params['agent']['FOE_TRIGGER_DISTANCE'] = FOE_TRIGGER_DISTANCE
         params['agent']['HUNTER_MODE_IDEA']     = HUNTER_MODE_IDEA
         params['agent']['STRIKING_DISTANCE']    = STRIKING_DISTANCE
         params['agent']['COINS']                = COINS
