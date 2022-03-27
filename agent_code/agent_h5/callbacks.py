@@ -21,8 +21,8 @@ from settings import SCENARIOS
 
 ## Training parameters - CHANGE FOR EVERY TRAINING
 AGENT_NAME          = "h5"
-MODEL_NAME          = "peaceful_hunt_7"
-SCENARIO            = "empty"
+MODEL_NAME          = "collecting_hunter_and_miner"
+SCENARIO            = "loot-box"
 OTHER_AGENTS        = ["peaceful_agent"]
 TRAINING_ROUNDS     = 1000
 START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
@@ -40,7 +40,7 @@ if EPSILON_MODE == "rounds":
     EPSILON_AT_INFINITY   = 0
     THRESHOLD_FRACTION    = 0.33
 if EPSILON_MODE == "old":
-    EPSILON_AT_ROUND_ZERO = 0.5
+    EPSILON_AT_ROUND_ZERO = 1
     EPSILON_AT_ROUND_LAST = 0.01
 
 ## Hyperparameters for Q-update - CHANGE IF YOU WANT
@@ -52,16 +52,15 @@ N     = 5         # N-step Q-learning
 ## Hyperparameters for agent behavior - CHANGE IF YOU WANT
 FOE_TRIGGER_DISTANCE = 5
 STRIKING_DISTANCE    = 3
+MAX_WAITING_TIME     = 2
 
 ## Rewards
 REWARDS = {
     e.COIN_COLLECTED: 5,
     e.INVALID_ACTION: -1,
     e.KILLED_OPPONENT: 100,
-    e.LOOP: -1,
-    e.WAITED_TOO_LONG: -1,
-    # e.GOT_KILLED: -1,
-
+    # e.WAITED_TOO_LONG: -0.1,
+    # e.KILLED_SELF: -0.01,
 }
 
 
@@ -298,6 +297,7 @@ def state_to_features(self, game_state: dict) -> np.array:
     explosion_map     = game_state['explosion_map']
     foes              = game_state['others']
 
+    foe_map = create_mask([foe[3] for foe in foes])
     neighbors = own_position + DIRECTIONS
 
     ## Define variables for updates & reset for each round
@@ -315,8 +315,9 @@ def state_to_features(self, game_state: dict) -> np.array:
     self.logger.debug(f'stf(): # coins collected = {self.already_collected_coins}')
     
     # 1. Calculate proximity map
-    distance_map, reachability_map, direction_map = proximity_map(own_position, crate_map)
-
+    free_spacetime_map = build_free_spacetime_map(own_position, crate_map, explosion_map, bombs, foe_map)
+    distance_map, reachability_map, direction_wait_map = proximity_map(own_position, free_spacetime_map, explosion_map, bombs)
+    direction_map = direction_wait_map[:,:,:4]
 
     # 2. Check for danger and lethal danger
     """
@@ -335,7 +336,7 @@ def state_to_features(self, game_state: dict) -> np.array:
     bombing_is_dumb = False
     
     # Don't go where it's invalid or suicidal
-    going_is_dumb   = np.array([( (not reachability_map[(x,y)]) or explosion_map[(x,y)] ) for [x,y] in neighbors])
+    going_is_dumb   = np.array([( (not reachability_map[(x,y)]) or free_spacetime_map[1][(x,y)] ) for [x,y] in neighbors])
     
     # Don't place a bomb if you're not able to
     if not can_place_bomb: 
@@ -351,7 +352,7 @@ def state_to_features(self, game_state: dict) -> np.array:
         no_future_explosion_mask = np.logical_not(BOMB_MASK[bomb_position])
 
         if not waiting_is_dumb:
-            rescue_distances         = distance_map[reachability_map & no_future_explosion_mask]   # improve by including explosions
+            rescue_distances         = distance_map[reachability_map & no_future_explosion_mask]
             minimal_rescue_distance  = DEFAULT_DISTANCE if (rescue_distances.size == 0) else np.amin(rescue_distances)
             if steps_until_explosion <= minimal_rescue_distance:
                 waiting_is_dumb = True
@@ -363,7 +364,7 @@ def state_to_features(self, game_state: dict) -> np.array:
     # Don't place a bomb you can't escape from
     if not bombing_is_dumb:
         no_future_explosion_mask = np.logical_not(BOMB_MASK[own_position])
-        rescue_distances         = distance_map[reachability_map & no_future_explosion_mask] # improve by including explosions
+        rescue_distances         = distance_map[reachability_map & no_future_explosion_mask]
         minimal_rescue_distance  = DEFAULT_DISTANCE if (rescue_distances.size == 0) else np.amin(rescue_distances) 
         if minimal_rescue_distance > 4:
             bombing_is_dumb = True
@@ -379,7 +380,7 @@ def state_to_features(self, game_state: dict) -> np.array:
         foe_positions       = np.array([])
         min_foe_distance    = DEFAULT_DISTANCE    
     
-    if min_foe_distance <= FOE_TRIGGER_DISTANCE or self.already_collected_coins == COINS:
+    if len(foes) > 0 and self.already_collected_coins == COINS:
         mode = 2   # Hunter mode
     elif len(reachable_coins) > 0:
         mode = 0   # Collector mode
@@ -429,8 +430,29 @@ def state_to_features(self, game_state: dict) -> np.array:
 
     return features
 
+def create_mask(positions, shape = (ROWS, COLS)):
+    array = np.zeros(shape)
+    indices = tuple(np.array(positions).T)
+    array[indices] = True
+    return(array)
 
-def proximity_map (own_position, game_field):
+
+def build_free_spacetime_map(own_position, game_field, explosion_map, bombs, foe_map):
+    free_spacetime = np.resize(np.logical_and(game_field == 0, foe_map == 0), (7, ROWS, COLS)) # exclude crates, walls and foes
+    free_spacetime[1][np.nonzero(explosion_map)] = False # exclude present explosions
+    free_spacetime[0][np.nonzero(explosion_map)] = False
+
+    for ((x,y), bomb_timer) in bombs: 
+        steps_until_explosion = bomb_timer + 1
+        start = 1 if (x,y) == own_position else 0
+        free_spacetime[start:steps_until_explosion, x, y] = np.zeros(steps_until_explosion - start) # exclude bomb spots as long as bomb is present
+        free_spacetime[steps_until_explosion:][np.resize(np.logical_and(BOMB_MASK[(x,y)], np.logical_or(game_field == 1, foe_map)), (7 - steps_until_explosion, ROWS, COLS))] = True # include crates and foes destroyed by explosion 
+        free_spacetime[steps_until_explosion : steps_until_explosion+2][np.resize(BOMB_MASK[(x,y)], (2, ROWS, COLS))] = False # exclude future explosions as long as present
+
+    return(free_spacetime)
+
+
+def proximity_map (own_position, free_spacetime_map, explosion_map, bombs):
     """
     calculates three values for each tile of the game field:
     1. travel time aka. distance from own position
@@ -442,72 +464,81 @@ def proximity_map (own_position, game_field):
     own_position : tuple (x, y)
         with x and y being current coordinates coordinates of the agent 
         on the game field. Thus 0 < x < COLS-1, 0 < y < ROWS-1.
-    game_field   : np.array, shape = (COLS, ROWS)
-        = game_state['field']
+    ...
 
     Returns
     -------
     travel_time_map         : np.array, shape like game_field, dtype = int
         Reachable tiles have the value of the number of steps it takes to move to them 
         from own_position.
-        Unreachable tiles have the value of DEFAULT_TRAVEL_TIME which is much higher than 
+        Unreachable tiles have the value of DEFAULT_DISTANCE which is much higher than 
         any reachable time.
     reachable_map           : np.array, shape like game_field, dtype = bool
         A boolean mask of travel_time_map that labels reachable tiles as True and 
         unreachable ones as False.
-    original_directions_map : np.array, shape = (COLS, ROWS, 4), dtype = bool
-        A map of the game_field that holds a 4-element boolean array for every tile.
-        Values of the tile's array correspond to the 4 directions UP, RIGHT, DOWN, LEFT 
+    original_directions_map : np.array, shape = (COLS, ROWS, 5), dtype = bool
+        A map of the game_field that holds a 5-element boolean array for every tile.
+        Values of the tile's array correspond to the 5 directions UP, RIGHT, DOWN, LEFT, WAIT 
         which you might from own_position to reach the tile. Those direction which lead you 
         to reach the tile the fastest are marked True, the others False.
         For example, if you can reach a tile the fastest by either going UP or RIGHT at the step
-        then its array will look like this [TRUE, TRUE, FALSE, FALSE].
+        then its array will look like this [TRUE, TRUE, FALSE, FALSE, FALSE].
         This map will be important to quickly find the best direction towards coins, crates,
         opponents and more.
     """
 
-
     # Setup of initial values
-    distance_map  = np.full_like(game_field, DEFAULT_DISTANCE)
-    direction_map = np.full((*game_field.shape, 4), False)
+    distance_time_map  = np.full((7, ROWS, COLS), DEFAULT_DISTANCE)
+    direction_map = np.full((7, ROWS, COLS, 5), False) # UP, RIGHT, DOWN, LEFT, WAIT
+    x_own, y_own = own_position
 
-    distance_map[own_position] = 0
-    for i, dir in enumerate(DIRECTIONS):
-        neighbor = tuple(dir + np.array(own_position))
-        if game_field[neighbor] == 0:   # If neighbor is a free field
-            direction_map[neighbor][i] = True
-    
+    distance_time_map[0, x_own, y_own] = 0
+    direction_map[0, x_own, y_own][4] = free_spacetime_map[1, x_own, y_own]
+    for i, step in enumerate([(0, -1), (1, 0), (0, 1), (-1, 0)]):
+        x_next, y_next = np.array(step) + np.array(own_position)
+        direction_map[1, x_next, y_next, i] = free_spacetime_map[1, x_next, y_next] # If neighbor is a free field in next step
 
     # Breadth first search for proximity values to all reachable spots
-    frontier = [own_position]
+    frontier = [(0, x_own, y_own)]
     while len(frontier) > 0:
-        current = frontier.pop(0)
-        
-        for dir in DIRECTIONS:
-            neighbor = tuple(dir + np.array(current))
-            
-            # Update travel time to `neighbor` field
-            if game_field[neighbor] == 0:   # If neighbor is a free field
-                time = distance_map[current] + 1
-                if distance_map[neighbor] > time:
-                    distance_map[neighbor] = time
-                    frontier.append(neighbor)
-                    
-                    # Update original direction for `neighbor` field
-                    if time > 1:
-                        direction_map[neighbor] = direction_map[current]
-                        
-                # Combine orginial directions if travel times are equal
-                elif distance_map[neighbor] == time:
-                    direction_map[neighbor] = np.logical_or(
-                        direction_map[neighbor], direction_map[current])
+        t_current, x_current, y_current = frontier.pop(0)
 
+        if not np.any(explosion_map) and bombs == []:
+            waiting_time_limit = 1
+        else: 
+            currents_future = free_spacetime_map[min(t_current, 6):, x_current, y_current]
+            waiting_time_limit = MAX_WAITING_TIME + 1 if np.all(currents_future) else min(MAX_WAITING_TIME + 1, np.argmin(currents_future))
+
+        for waiting_time in range(waiting_time_limit):
+            t_neighbor = t_current + waiting_time + 1
+
+            for dir in [(0, -1), (1, 0), (0, 1), (-1, 0)]:
+                x_neighbor, y_neighbor = np.array(dir) + np.array([x_current, y_current])
+                neighbor = (min(t_neighbor, 6), x_neighbor, y_neighbor)
+                
+                # Update travel time to `neighbor` field
+                if free_spacetime_map[neighbor]:
+                    if distance_time_map[neighbor] > t_neighbor:
+                        distance_time_map[neighbor] = t_neighbor
+                        frontier.append((t_neighbor, x_neighbor, y_neighbor))
+                    
+                        # Update original direction for `neighbor` field
+                        if t_neighbor > 1:
+                            direction_map[neighbor] = direction_map[min(t_current, 6), x_current, y_current]
+                            # print(f"1: {current}, {neighbor}")
+                        
+                    # Combine orginial directions if travel times are equal
+                    elif distance_time_map[neighbor] == t_neighbor:
+                        direction_map[neighbor] = np.logical_or(direction_map[neighbor], direction_map[min(t_current, 6), x_current, y_current])
+                        # print(f"2: {current}, {neighbor}")
+
+    shortest_distance_map = np.amin(distance_time_map, axis = 0)
+    direction_map = np.take_along_axis(direction_map, np.argmin(distance_time_map, axis = 0).reshape(1, COLS, ROWS, 1), axis = 0).reshape(ROWS, COLS, 5)
 
     # Derivation of reachability_map
-    reachability_map = distance_map != DEFAULT_DISTANCE
+    reachability_map = shortest_distance_map != DEFAULT_DISTANCE
 
-
-    return distance_map, reachability_map, direction_map
+    return shortest_distance_map, reachability_map, direction_map
 
 
 
