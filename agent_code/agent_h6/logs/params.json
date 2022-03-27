@@ -1,0 +1,35 @@
+{
+    "training": {
+        "AGENT_NAME": "h4",
+        "MODEL_NAME": "coin-miner15",
+        "SCENARIO": "loot-box",
+        "OTHER_AGENTS": [],
+        "TRAINING_ROUNDS": 3000,
+        "START_TRAINING_WITH": "RESET"
+    },
+    "epsilon": {
+        "EPSILON_MODE": "rounds",
+        "EPSILON_AT_ROUND_ZERO": 1,
+        "EPSILON_THRESHOLD": 0.1,
+        "EPSILON_AT_INFINITY": 0.001,
+        "THRESHOLD_FRACTION": 0.33
+    },
+    "Q-update": {
+        "DOUBLE_Q_LEARNING": false,
+        "ALPHA": 0.1,
+        "GAMMA": 1,
+        "MODE": "SARSA",
+        "N": 5
+    },
+    "agent": {
+        "FOE_TRIGGER_DISTANCE": 5,
+        "STRIKING_DISTANCE": 3,
+        "COINS": 50
+    },
+    "rewards": {
+        "COIN_COLLECTED": 5,
+        "INVALID_ACTION": -1,
+        "CRATE_DESTROYED": 0.5,
+        "KILLED_OPPONENT": 100
+    }
+}
