@@ -445,10 +445,13 @@ def state_to_features (self, game_state):
         goals                = make_goals(best_crate_spots, direction_map, own_position)
 
     if mode == 2:
+        ## Idea 0: Go towards closest foe
         closest_foe = select_nearest(foe_positions, distance_map)
         goals       = make_goals(closest_foe, direction_map, own_position)
         if min_foe_distance <= STRIKING_DISTANCE and not bombing_is_dumb:
-            goals[4] = True  
+            goals[4] = True
+
+        
 
     # 5. Assemble feature array
     features = np.full(5, 1)
