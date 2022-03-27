@@ -10,7 +10,7 @@ from typing import List
 
 from .callbacks import MODEL_FILE, SA_COUNTER_FILE
 from .callbacks import ALPHA, GAMMA, MODE, N, REWARDS, DOUBLE_Q_LEARNING
-from .callbacks import START_TRAINING_WITH, AGENT_NAME
+from .callbacks import START_TRAINING_WITH, AGENT_NAME, Q_SAVE_INTERVAL
 from .callbacks import random_argmax
 
 
@@ -204,7 +204,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
   
     # Save updated Q-function as new model
     self.model = self.Q_A  if (current_round % 2 == 1)  else self.Q_B
-    if not DOUBLE_Q_LEARNING: self.Q_A = self.Q_B = self.model  # Hopefully Syncronizing Q_A and Q_B undoes Double-Q-Learning
+    if not DOUBLE_Q_LEARNING: self.Q_A = self.Q_B = self.model  # Hopefully, syncronizing Q_A and Q_B undoes Double-Q-Learning
     np.save(MODEL_FILE, self.model)
     np.save(SA_COUNTER_FILE, self.Sa_counter)
 
@@ -218,7 +218,8 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     # Training analysis
 
     ## Save analysis data
-    np.save(Q_file(current_round), self.model) 
+    if current_round % Q_SAVE_INTERVAL == 0:
+        np.save(Q_file(current_round), self.model) 
 
     ## Time the training and save the data
     '''

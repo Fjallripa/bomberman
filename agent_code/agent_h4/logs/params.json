@@ -1,16 +1,18 @@
 {
     "training": {
         "AGENT_NAME": "h4",
-        "MODEL_NAME": "coin-miner12",
+        "MODEL_NAME": "coin-miner15",
         "SCENARIO": "loot-box",
         "OTHER_AGENTS": [],
-        "TRAINING_ROUNDS": 2000,
+        "TRAINING_ROUNDS": 3000,
         "START_TRAINING_WITH": "RESET"
     },
     "epsilon": {
-        "EPSILON_MODE": "old",
+        "EPSILON_MODE": "rounds",
         "EPSILON_AT_ROUND_ZERO": 1,
-        "EPSILON_AT_ROUND_LAST": 0.01
+        "EPSILON_THRESHOLD": 0.1,
+        "EPSILON_AT_INFINITY": 0.001,
+        "THRESHOLD_FRACTION": 0.33
     },
     "Q-update": {
         "DOUBLE_Q_LEARNING": false,
