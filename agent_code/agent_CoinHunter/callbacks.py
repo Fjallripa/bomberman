@@ -1,4 +1,4 @@
-# Callbacks for agent_h4
+# Callbacks for agent_h6
 # ======================
 
 
@@ -16,29 +16,29 @@ from settings import SCENARIOS
 # Global Constants
 # ----------------
 
-SETUP = "test"   # "train" or "test"
+SETUP = "train"   # "train" or "test"
 
 # Performance Test parameters
 if SETUP == "test":
-    AGENT_NAME   = "h4"
-    MODEL_NAME   = "coin-miner12"
-    SCENARIO     = "classic"
-    OTHER_AGENTS = ["rule_based", "rule_based", "rule_based"]
-    TEST_ROUNDS  = 300
+    AGENT_NAME   = "h6"
+    MODEL_NAME   = "peaceful-hunter-1"
+    SCENARIO     = "loot-box"
+    OTHER_AGENTS = ["peacefull_agent"]
+    TEST_ROUNDS  = 10
 
 
 # All Training parameters
 if SETUP == "train":
     # Training setup parameters - CHANGE FOR EVERY TRAINING
-    AGENT_NAME          = "h4"
-    MODEL_NAME          = "coin-miner15"
-    SCENARIO            = "classic"
-    OTHER_AGENTS        = ["rule_based", "rule_based", "rule_based"]
-    TRAINING_ROUNDS     = 100
+    AGENT_NAME          = "h6"
+    MODEL_NAME          = "peaceful-hunter-1"
+    SCENARIO            = "loot-box"
+    OTHER_AGENTS        = ["peaceful_agent"]
+    TRAINING_ROUNDS     = 2000
     START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
 
     # Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
-    EPSILON_MODE = "rounds"
+    EPSILON_MODE = "old"
     if EPSILON_MODE == "experience":
         EPSILON_AT_START     = 1
         EPSILON_THRESHOLD    = 0.1
@@ -59,7 +59,7 @@ if SETUP == "train":
     GAMMA             = 1
     MODE              = "SARSA"   # "SARSA" or "Q-Learning"
     N                 = 5   # N-step Q-learning
-    Q_SAVE_INTERVAL   = 1
+    Q_SAVE_INTERVAL   = 10
 
     # Rewards
     REWARDS = {
@@ -67,20 +67,22 @@ if SETUP == "train":
         e.INVALID_ACTION: -1,
         e.CRATE_DESTROYED: 0.5,
         e.KILLED_OPPONENT: 100,
+        #e.WAITED_TOO_LONG: -0.1,
         #e.GOT_KILLED: -1,    
     }
 
 
 # Hyperparameters for agent behavior - CHANGE IF YOU WANT
 ## Hunter Mode Idea 0
-HUNTER_MODE_IDEA = 2   # 0, 1, 2 or 3
+HUNTER_MODE_IDEA = True   # True or False
 
-if HUNTER_MODE_IDEA == 0:
+if HUNTER_MODE_IDEA == False:
     FOE_TRIGGER_DISTANCE = 5
 else:
     IDEA2_KILL_PROB = 0.2
 
-STRIKING_DISTANCE    = 3
+STRIKING_DISTANCE = 3
+MAX_WAITING_TIME  = 2
 
 
 
@@ -209,9 +211,12 @@ def setup(self):
         params['Q-update']['MODE']              = MODE
         params['Q-update']['N']                 = N
         params['Q-update']['Q_SAVE_INTERVAL']   = Q_SAVE_INTERVAL
-        params['agent']['FOE_TRIGGER_DISTANCE'] = FOE_TRIGGER_DISTANCE
+        if HUNTER_MODE_IDEA == 0:
+            params['agent']['FOE_TRIGGER_DISTANCE'] = FOE_TRIGGER_DISTANCE
+        params['agent']['HUNTER_MODE_IDEA']     = HUNTER_MODE_IDEA
         params['agent']['STRIKING_DISTANCE']    = STRIKING_DISTANCE
-        params['agent']['COINS']                = COINS   
+        params['agent']['COINS']                = COINS
+        params['agent']['MAX_WAITING_TIME']     = MAX_WAITING_TIME
         params['rewards'] = REWARDS         
         
         with open(params_file, 'w') as file:
@@ -341,6 +346,7 @@ def state_to_features (self, game_state):
 
     neighbors     = own_position + DIRECTIONS
     foe_positions = [foe[3] for foe in foes]
+    foe_map = create_mask(foe_positions)
             
 
     ## Define variables for updates & reset for each round
@@ -360,7 +366,11 @@ def state_to_features (self, game_state):
     
 
     # 1. Calculate proximity map
-    distance_map, reachability_map, direction_map = proximity_map(own_position, crate_map)
+    free_spacetime_map = build_free_spacetime_map(own_position, crate_map, explosion_map, bombs, foe_map)
+    distance_map, reachability_map, direction_wait_map \
+                       = proximity_map(own_position, free_spacetime_map, explosion_map, bombs)
+    direction_map = direction_wait_map[:,:,:4]
+    #distance_map, reachability_map, direction_map = proximity_map(own_position, crate_map)
 
 
     # 2. Check for danger and lethal danger
@@ -380,7 +390,7 @@ def state_to_features (self, game_state):
     bombing_is_dumb = False
     
     # Don't go where it's invalid or suicidal
-    going_is_dumb   = np.array([( (not reachability_map[(x,y)]) or explosion_map[(x,y)] ) for [x,y] in neighbors])
+    going_is_dumb   = np.array([( (not reachability_map[(x,y)]) or not free_spacetime_map[(1, x, y)] ) for [x,y] in neighbors])
     
     # Don't place a bomb if you're not able to
     if not can_place_bomb: 
@@ -429,12 +439,12 @@ def state_to_features (self, game_state):
     else:   # Idea 1: Hunter mode only when no more coins to collect
         hunter_condition = len(foes) > 0 and self.already_collected_coins == COINS
     
-    if hunter_condition:
-        mode = 2   # Hunter mode
-        self.logger.debug(f"Hunter mode")
-    elif len(reachable_coins) > 0:
+    if len(reachable_coins) > 0:
         mode = 0   # Collector mode
         self.logger.debug(f"Collector mode")
+    elif hunter_condition:
+        mode = 2   # Hunter mode
+        self.logger.debug(f"Hunter mode")
     else:
         mode = 1   # Miner mode
         self.logger.debug(f"Miner mode")
@@ -457,12 +467,14 @@ def state_to_features (self, game_state):
             hidden_coin_density = coin_density(crate_map, self.already_collected_coins)
             expected_new_coins  = expected_coins_uncovered(crates_destroyed_map, sensible_bombing_map, hidden_coin_density)
             expected_kills      = expected_foes_killed(foe_positions, own_position)
-            best_bomb_spots     = best_bombing_spots(distance_map, expected_new_coins, expected_kills)
+            expected_kill_map   = create_mask(own_position) * expected_kills
+            best_bomb_spots     = best_bombing_spots(distance_map, expected_new_coins, expected_kill_map)
         
         goals = make_goals(best_bomb_spots, direction_map, own_position)
         
 
     if mode == 2:
+        '''
         #if HUNTER_MODE_IDEA == 0:   # Idea 0: Go towards closest foe
         closest_foe = select_nearest(foe_positions, distance_map)
         goals       = make_goals(closest_foe, direction_map, own_position)
@@ -470,7 +482,18 @@ def state_to_features (self, game_state):
             goals[4] = True
         
         #! TODO: Implement Hunter mode idea 3:
+        '''
+        local_bombing_spots    = np.append(neighbors, np.array(own_position))
+        local_kill_expectation = np.array([expected_foes_killed(foe_positions, local_spot) for local_spot in local_bombing_spots])
+        print(f"Before masking: {local_kill_expectation}")
+        local_kill_expectation[np.append(going_is_dumb, np.array(bombing_is_dumb))] = 0
+        print(f"After masking: {local_kill_expectation}")
         
+        if np.all(local_kill_expectation == 0) or HUNTER_MODE_IDEA == 0:
+            closest_foe = select_nearest(foe_positions, distance_map) # improve by selecting foes in bomb spread, not only nearest
+            goals       = make_goals(closest_foe, direction_map, own_position)
+        else:
+            goals       = local_kill_expectation == np.amax(local_kill_expectation)
 
     # 5. Assemble feature array
     features = np.full(5, 1)
@@ -495,7 +518,47 @@ def state_to_features (self, game_state):
 
 
 
-def proximity_map (own_position, game_field):
+def create_mask(positions, shape = (ROWS, COLS)):
+    array = np.zeros(shape)
+    if len(positions) > 0:
+        indices        = tuple(np.array(positions).T)
+        array[indices] = True
+        return(array)
+    else:
+        return(array)
+
+
+def build_free_spacetime_map(own_position, game_field, explosion_map, bombs, foe_map):
+    free_spacetime = np.resize(np.logical_and(game_field == 0, foe_map == 0), (7, ROWS, COLS)) # exclude crates, walls and foes
+    free_spacetime[1][np.nonzero(explosion_map)] = False # exclude present explosions
+    free_spacetime[0][np.nonzero(explosion_map)] = False
+
+    for ((x,y), bomb_timer) in bombs: 
+        steps_until_explosion = bomb_timer + 1
+        start                 = 1 if (x,y) == own_position else 0
+        
+        # Exclude bomb spots as long as bomb is present
+        free_spacetime[start:steps_until_explosion, x, y] \
+                              = np.zeros(steps_until_explosion - start)
+        
+        # include crates and foes destroyed by explosion 
+        crates_or_foes_mask   = np.logical_or(game_field == 1, foe_map)
+        what_gets_destroyed   = np.logical_and(BOMB_MASK[(x,y)], crates_or_foes_mask)
+        block_until_destroyed = np.resize(what_gets_destroyed, (7 - steps_until_explosion, ROWS, COLS))
+        free_spacetime[steps_until_explosion:][block_until_destroyed] \
+                              = True 
+        
+        # exclude future explosions as long as present
+        bomb_spread_mask      = np.resize(BOMB_MASK[(x,y)], (2, ROWS, COLS))
+        free_spacetime[steps_until_explosion : steps_until_explosion+2][bomb_spread_mask] \
+                              = False 
+
+    return(free_spacetime)
+
+
+
+
+def proximity_map (own_position, free_spacetime_map, explosion_map, bombs):
     """
     calculates three values for each tile of the game field:
     1. travel time aka. distance from own position
@@ -507,72 +570,81 @@ def proximity_map (own_position, game_field):
     own_position : tuple (x, y)
         with x and y being current coordinates coordinates of the agent 
         on the game field. Thus 0 < x < COLS-1, 0 < y < ROWS-1.
-    game_field   : np.array, shape = (COLS, ROWS)
-        = game_state['field']
+    ...
 
     Returns
     -------
     travel_time_map         : np.array, shape like game_field, dtype = int
         Reachable tiles have the value of the number of steps it takes to move to them 
         from own_position.
-        Unreachable tiles have the value of DEFAULT_TRAVEL_TIME which is much higher than 
+        Unreachable tiles have the value of DEFAULT_DISTANCE which is much higher than 
         any reachable time.
     reachable_map           : np.array, shape like game_field, dtype = bool
         A boolean mask of travel_time_map that labels reachable tiles as True and 
         unreachable ones as False.
-    original_directions_map : np.array, shape = (COLS, ROWS, 4), dtype = bool
-        A map of the game_field that holds a 4-element boolean array for every tile.
-        Values of the tile's array correspond to the 4 directions UP, RIGHT, DOWN, LEFT 
+    original_directions_map : np.array, shape = (COLS, ROWS, 5), dtype = bool
+        A map of the game_field that holds a 5-element boolean array for every tile.
+        Values of the tile's array correspond to the 5 directions UP, RIGHT, DOWN, LEFT, WAIT 
         which you might from own_position to reach the tile. Those direction which lead you 
         to reach the tile the fastest are marked True, the others False.
         For example, if you can reach a tile the fastest by either going UP or RIGHT at the step
-        then its array will look like this [TRUE, TRUE, FALSE, FALSE].
+        then its array will look like this [TRUE, TRUE, FALSE, FALSE, FALSE].
         This map will be important to quickly find the best direction towards coins, crates,
         opponents and more.
     """
 
-
     # Setup of initial values
-    distance_map  = np.full_like(game_field, DEFAULT_DISTANCE)
-    direction_map = np.full((*game_field.shape, 4), False)
+    distance_time_map  = np.full((7, ROWS, COLS), DEFAULT_DISTANCE)
+    direction_map = np.full((7, ROWS, COLS, 5), False) # UP, RIGHT, DOWN, LEFT, WAIT
+    x_own, y_own = own_position
 
-    distance_map[own_position] = 0
-    for i, dir in enumerate(DIRECTIONS):
-        neighbor = tuple(dir + np.array(own_position))
-        if game_field[neighbor] == 0:   # If neighbor is a free field
-            direction_map[neighbor][i] = True
-    
+    distance_time_map[0, x_own, y_own] = 0
+    direction_map[0, x_own, y_own][4] = free_spacetime_map[1, x_own, y_own]
+    for i, step in enumerate([(0, -1), (1, 0), (0, 1), (-1, 0)]):
+        x_next, y_next = np.array(step) + np.array(own_position)
+        direction_map[1, x_next, y_next, i] = free_spacetime_map[1, x_next, y_next] # If neighbor is a free field in next step
 
     # Breadth first search for proximity values to all reachable spots
-    frontier = [own_position]
+    frontier = [(0, x_own, y_own)]
     while len(frontier) > 0:
-        current = frontier.pop(0)
-        
-        for dir in DIRECTIONS:
-            neighbor = tuple(dir + np.array(current))
-            
-            # Update travel time to `neighbor` field
-            if game_field[neighbor] == 0:   # If neighbor is a free field
-                time = distance_map[current] + 1
-                if distance_map[neighbor] > time:
-                    distance_map[neighbor] = time
-                    frontier.append(neighbor)
-                    
-                    # Update original direction for `neighbor` field
-                    if time > 1:
-                        direction_map[neighbor] = direction_map[current]
-                        
-                # Combine orginial directions if travel times are equal
-                elif distance_map[neighbor] == time:
-                    direction_map[neighbor] = np.logical_or(
-                        direction_map[neighbor], direction_map[current])
+        t_current, x_current, y_current = frontier.pop(0)
 
+        if not np.any(explosion_map) and bombs == []:
+            waiting_time_limit = 1
+        else: 
+            currents_future = free_spacetime_map[min(t_current, 6):, x_current, y_current]
+            waiting_time_limit = MAX_WAITING_TIME + 1 if np.all(currents_future) else min(MAX_WAITING_TIME + 1, np.argmin(currents_future))
+
+        for waiting_time in range(waiting_time_limit):
+            t_neighbor = t_current + waiting_time + 1
+
+            for dir in [(0, -1), (1, 0), (0, 1), (-1, 0)]:
+                x_neighbor, y_neighbor = np.array(dir) + np.array([x_current, y_current])
+                neighbor = (min(t_neighbor, 6), x_neighbor, y_neighbor)
+                
+                # Update travel time to `neighbor` field
+                if free_spacetime_map[neighbor]:
+                    if distance_time_map[neighbor] > t_neighbor:
+                        distance_time_map[neighbor] = t_neighbor
+                        frontier.append((t_neighbor, x_neighbor, y_neighbor))
+                    
+                        # Update original direction for `neighbor` field
+                        if t_neighbor > 1:
+                            direction_map[neighbor] = direction_map[min(t_current, 6), x_current, y_current]
+                            # print(f"1: {current}, {neighbor}")
+                        
+                    # Combine orginial directions if travel times are equal
+                    elif distance_time_map[neighbor] == t_neighbor:
+                        direction_map[neighbor] = np.logical_or(direction_map[neighbor], direction_map[min(t_current, 6), x_current, y_current])
+                        # print(f"2: {current}, {neighbor}")
+
+    shortest_distance_map = np.amin(distance_time_map, axis = 0)
+    direction_map = np.take_along_axis(direction_map, np.argmin(distance_time_map, axis = 0).reshape(1, COLS, ROWS, 1), axis = 0).reshape(ROWS, COLS, 5)
 
     # Derivation of reachability_map
-    reachability_map = distance_map != DEFAULT_DISTANCE
+    reachability_map = shortest_distance_map != DEFAULT_DISTANCE
 
-
-    return distance_map, reachability_map, direction_map
+    return shortest_distance_map, reachability_map, direction_map
 
 
 
@@ -618,7 +690,7 @@ def select_nearest (positions, distance_map):
 
 
 
-def make_goals (positions, direction_map, own_position):
+def make_goals (positions, direction_wait_map, own_position):
     """
     """
 
@@ -626,7 +698,7 @@ def make_goals (positions, direction_map, own_position):
     goals = np.full(5, False)
     if len(positions) > 0:
         positions_tuple  = tuple(positions.T)
-        goal_directions  = direction_map[positions_tuple]
+        goal_directions  = direction_wait_map[positions_tuple]
         goals[:4]        = np.any(goal_directions, axis = 0)
         
         # Check if there's a goal on the own_position
@@ -694,8 +766,8 @@ def coin_density (crate_map, already_collected_coins):
 
 
 
-def expected_coins_uncovered (number_of_destroyed_crates_map, sensible_bombing_map, coin_density):
-    expected_crates_destroyed = sensible_bombing_map * number_of_destroyed_crates_map
+def expected_coins_uncovered (number_of_destroyed_crates_map, sensible_bombing_mask, coin_density):
+    expected_crates_destroyed = sensible_bombing_mask * number_of_destroyed_crates_map
 
     return coin_density * expected_crates_destroyed
 
@@ -724,13 +796,14 @@ def expected_foes_killed (foe_positions, own_position):
 
 
 
-def best_bombing_spots (distance_map, expected_coins, expected_kills):
+def best_bombing_spots (distance_map, expected_coins, expected_kill_map):
     
     points_for_coins = 1
     points_for_kills = 5
 
+    
     time_until_next_bombing = distance_map + BOMB_COOLDOWN_TIME   # Time until next bomb can be placed
-    expected_points_map     = expected_coins * points_for_coins + expected_kills * points_for_kills
+    expected_points_map     = expected_coins * points_for_coins + expected_kill_map * points_for_kills
     point_speed_map         = expected_points_map / time_until_next_bombing
     max_point_speed         = np.amax(point_speed_map)
 

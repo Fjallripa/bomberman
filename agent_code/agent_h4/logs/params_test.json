@@ -8,6 +8,6 @@
             "rule-based",
             "rule-based"
         ],
-        "TEST_ROUNDS": 10
+        "TEST_ROUNDS": 300
     }
 }

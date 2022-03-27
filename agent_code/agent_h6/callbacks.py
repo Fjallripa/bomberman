@@ -59,7 +59,7 @@ if SETUP == "train":
     GAMMA             = 1
     MODE              = "SARSA"   # "SARSA" or "Q-Learning"
     N                 = 5   # N-step Q-learning
-    Q_SAVE_INTERVAL   = 5
+    Q_SAVE_INTERVAL   = 10
 
     # Rewards
     REWARDS = {
@@ -691,7 +691,7 @@ def select_nearest (positions, distance_map):
 
 
 
-def make_goals (positions, direction_map, own_position):
+def make_goals (positions, direction_wait_map, own_position):
     """
     """
 
@@ -699,7 +699,7 @@ def make_goals (positions, direction_map, own_position):
     goals = np.full(5, False)
     if len(positions) > 0:
         positions_tuple  = tuple(positions.T)
-        goal_directions  = direction_map[positions_tuple]
+        goal_directions  = direction_wait_map[positions_tuple]
         goals[:4]        = np.any(goal_directions, axis = 0)
         
         # Check if there's a goal on the own_position
