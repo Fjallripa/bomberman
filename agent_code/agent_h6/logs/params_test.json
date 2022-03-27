@@ -1,12 +1,12 @@
 {
     "test": {
-        "AGENT_NAME": "h4",
-        "MODEL_NAME": "coin-miner12",
+        "AGENT_NAME": "h6",
+        "MODEL_NAME": "peaceful-hunter-1",
         "SCENARIO": "classic",
         "OTHER_AGENTS": [
-            "rule-based",
-            "rule-based",
-            "rule-based"
+            "rule_based",
+            "rule_based",
+            "rule_based"
         ],
         "TEST_ROUNDS": 10
     }

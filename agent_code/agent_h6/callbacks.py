@@ -474,26 +474,27 @@ def state_to_features (self, game_state):
         
 
     if mode == 2:
-        '''
-        #if HUNTER_MODE_IDEA == 0:   # Idea 0: Go towards closest foe
-        closest_foe = select_nearest(foe_positions, distance_map)
-        goals       = make_goals(closest_foe, direction_map, own_position)
-        if min_foe_distance <= STRIKING_DISTANCE and not bombing_is_dumb:
-            goals[4] = True
         
-        #! TODO: Implement Hunter mode idea 3:
-        '''
-        local_bombing_spots = np.append(neighbors, np.array(own_position))
-        local_kill_expectation = np.array([expected_foes_killed(foe_positions, local_spot) for local_spot in local_bombing_spots])
-        print(f"Before masking: {local_kill_expectation}")
-        local_kill_expectation[np.append(going_is_dumb, np.array(bombing_is_dumb))] = 0
-        print(f"After masking: {local_kill_expectation}")
-        
-        if np.all(local_kill_expectation == 0) or HUNTER_MODE_IDEA == 0:
-            closest_foe = select_nearest(foe_positions, distance_map) # improve by selecting foes in bomb spread, not only nearest
+        if HUNTER_MODE_IDEA == 0:   # Idea 0: Go towards closest foe
+            closest_foe = select_nearest(foe_positions, distance_map)
             goals       = make_goals(closest_foe, direction_map, own_position)
-        else:
-            goals       = local_kill_expectation == np.amax(local_kill_expectation)
+            if min_foe_distance <= STRIKING_DISTANCE and not bombing_is_dumb:
+                goals[4] = True
+        
+        else: 
+            # Hunter mode idea 3
+            local_bombing_spots = np.vstack((neighbors, np.array([own_position])))
+            local_kill_expectation = np.array([expected_foes_killed(foe_positions, (local_x, local_y)) for [local_x, local_y] in local_bombing_spots])
+            local_kill_expectation[np.append(going_is_dumb, np.array(bombing_is_dumb))] = 0
+
+            if np.all(local_kill_expectation == 0):
+                foe_count = len(foe_positions)
+                foe_neighbors = (np.array(foe_positions).reshape(foe_count, 1, 2) + np.resize(np.array(DIRECTIONS), (foe_count,4,2))).reshape(-1,2)
+                closest_foe_neighbors = select_nearest(foe_neighbors, distance_map) # search for closest neighbors because foes unreachable
+                goals       = make_goals(closest_foe_neighbors, direction_map, own_position)
+            else:
+                goals       = local_kill_expectation == np.amax(local_kill_expectation)
+
 
     # 5. Assemble feature array
     features = np.full(5, 1)
