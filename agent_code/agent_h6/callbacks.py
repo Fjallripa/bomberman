@@ -474,6 +474,7 @@ def state_to_features (self, game_state):
         
 
     if mode == 2:
+        '''
         #if HUNTER_MODE_IDEA == 0:   # Idea 0: Go towards closest foe
         closest_foe = select_nearest(foe_positions, distance_map)
         goals       = make_goals(closest_foe, direction_map, own_position)
@@ -481,16 +482,18 @@ def state_to_features (self, game_state):
             goals[4] = True
         
         #! TODO: Implement Hunter mode idea 3:
-        """
-        local_bombing_spots = np.append(neighbors[not going_is_dumb], np.array(own_position)[not bombing_is_dumb])
-        local_kill_expectation = np.vectorize(expected_foe_kills, excluded = "foe_positions")(foe_positions, local_bombing_spots) if len(local_bombing_spots) > 0 else 0
+        '''
+        local_bombing_spots = np.append(neighbors, np.array(own_position))
+        local_kill_expectation = np.array([expected_foes_killed(foe_positions, local_spot) for local_spot in local_bombing_spots])
+        print(f"Before masking: {local_kill_expectation}")
+        local_kill_expectation[np.append(going_is_dumb, np.array(bombing_is_dumb))] = 0
+        print(f"After masking: {local_kill_expectation}")
         
-        if np.all(local_kill_expectation == 0):
+        if np.all(local_kill_expectation == 0) or HUNTER_MODE_IDEA == 0:
             closest_foe = select_nearest(foe_positions, distance_map) # improve by selecting foes in bomb spread, not only nearest
             goals       = make_goals(closest_foe, direction_map, own_position)
         else:
             goals       = local_kill_expectation == np.amax(local_kill_expectation)
-        """
 
     # 5. Assemble feature array
     features = np.full(5, 1)
