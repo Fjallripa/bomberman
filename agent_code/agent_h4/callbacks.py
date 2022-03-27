@@ -73,7 +73,13 @@ if SETUP == "train":
 
 # Hyperparameters for agent behavior - CHANGE IF YOU WANT
 ## Hunter Mode Idea 0
-FOE_TRIGGER_DISTANCE = 5
+HUNTER_MODE_IDEA = 2   # 0, 1, 2 or 3
+
+if HUNTER_MODE_IDEA == 0:
+    FOE_TRIGGER_DISTANCE = 5
+else:
+    IDEA2_KILL_PROB = 0.2
+
 STRIKING_DISTANCE    = 3
 
 
@@ -333,7 +339,9 @@ def state_to_features (self, game_state):
     explosion_map     = game_state['explosion_map']
     foes              = game_state['others']
 
-    neighbors = own_position + DIRECTIONS
+    neighbors     = own_position + DIRECTIONS
+    foe_positions = [foe[3] for foe in foes]
+            
 
     ## Define variables for updates & reset for each round
     if game_state['step'] == 1:
@@ -408,19 +416,20 @@ def state_to_features (self, game_state):
     
     # 3. Check game mode
     reachable_coins = select_reachable(collectable_coins, reachability_map)
-    if len(foes) > 0:
-        foe_positions       = np.array([foe[3] for foe in foes])
-        foe_positions_tuple = tuple(foe_positions.T)
-        min_foe_distance    = np.amin(distance_map[foe_positions_tuple])
-    else:
-        foe_positions       = np.array([])
-        min_foe_distance    = DEFAULT_DISTANCE    
     
     ## Testing out hunter modes
-    ### Idea 0
-    #if min_foe_distance <= FOE_TRIGGER_DISTANCE or self.already_collected_coins == COINS:
-    ### Idea 1
-    if len(foes) > 0 and self.already_collected_coins == COINS:
+    if len(foes) > 0:
+        foe_positions_tuple = tuple(np.array(foe_positions).T)
+        min_foe_distance    = np.amin(distance_map[foe_positions_tuple])
+    else:
+        min_foe_distance    = DEFAULT_DISTANCE 
+    
+    if HUNTER_MODE_IDEA == 0:  # Idea 0: Activate Hunter Mode when foe is close
+        hunter_condition = min_foe_distance <= FOE_TRIGGER_DISTANCE or self.already_collected_coins == COINS
+    else:   # Idea 1: Hunter mode only when no more coins to collect
+        hunter_condition = len(foes) > 0 and self.already_collected_coins == COINS
+    
+    if hunter_condition:
         mode = 2   # Hunter mode
         self.logger.debug(f"Hunter mode")
     elif len(reachable_coins) > 0:
@@ -439,18 +448,28 @@ def state_to_features (self, game_state):
         goals           = make_goals(best_coins, direction_map, own_position)
 
     if mode == 1:
-        crates_destroyed     = crate_destruction_map(crate_map, bombs)
+        crates_destroyed_map = crate_destruction_map(crate_map, bombs)
         sensible_bombing_map = sensible_bombing_spots(reachability_map, self.dumb_bombing_map)
-        best_crate_spots     = best_crate_bombing_spots(distance_map, crates_destroyed, sensible_bombing_map)
-        goals                = make_goals(best_crate_spots, direction_map, own_position)
+        
+        if HUNTER_MODE_IDEA == 0:   # Idea 0: Normal CoinMiner calculations
+            best_bomb_spots = best_crate_bombing_spots(distance_map, crates_destroyed_map, sensible_bombing_map)
+        else:                       # Idea 2: Include Hunter aspects into bombing spot calculation
+            hidden_coin_density = coin_density(crate_map, self.already_collected_coins)
+            expected_new_coins  = expected_coins_uncovered(crates_destroyed_map, sensible_bombing_map, hidden_coin_density)
+            expected_kills      = expected_foes_killed(foe_positions, own_position)
+            best_bomb_spots     = best_bombing_spots(distance_map, expected_new_coins, expected_kills)
+        
+        goals = make_goals(best_bomb_spots, direction_map, own_position)
+        
 
     if mode == 2:
-        ## Idea 0: Go towards closest foe
+        #if HUNTER_MODE_IDEA == 0:   # Idea 0: Go towards closest foe
         closest_foe = select_nearest(foe_positions, distance_map)
         goals       = make_goals(closest_foe, direction_map, own_position)
         if min_foe_distance <= STRIKING_DISTANCE and not bombing_is_dumb:
             goals[4] = True
-
+        
+        #! TODO: Implement Hunter mode idea 3:
         
 
     # 5. Assemble feature array
@@ -458,7 +477,6 @@ def state_to_features (self, game_state):
     
     # Directions (f1 - f4)
     for i in range(4):
-        neighbor = tuple(np.array(own_position) + DIRECTIONS[i])
         if going_is_dumb[i]:
             features[i] = 0
         elif goals[i]:
@@ -656,6 +674,68 @@ def best_crate_bombing_spots (distance_map, number_of_destroyed_crates_map, sens
     
     if max_destruction_speed > 0:
         best_spots_mask = np.isclose(destruction_speed_map, max_destruction_speed)   # Safer test for float equality
+        best_spots      = np.array(np.where(best_spots_mask)).T
+    else:
+        best_spots      = np.array([])
+    
+    return best_spots
+
+
+
+def coin_density (crate_map, already_collected_coins):
+    number_of_crates       = np.sum(crate_map == 1)
+    number_of_hidden_coins = COINS - already_collected_coins
+    if number_of_crates > 0:
+        hidden_coin_density = number_of_hidden_coins / number_of_crates
+    else:
+        hidden_coin_density = 0
+    
+    return hidden_coin_density
+
+
+
+def expected_coins_uncovered (number_of_destroyed_crates_map, sensible_bombing_map, coin_density):
+    expected_crates_destroyed = sensible_bombing_map * number_of_destroyed_crates_map
+
+    return coin_density * expected_crates_destroyed
+
+
+
+def expected_foes_killed (foe_positions, own_position):
+
+    # Direct distances to all foes
+    if len(foe_positions) > 0:
+        own_bomb_spread    = BOMB_MASK[own_position]
+        foe_position_array = np.array(foe_positions)
+        own_position_array = np.array(own_position)
+        distances_to_me    = np.sum(np.abs(foe_position_array - own_position_array), axis = 1)
+
+        # Which foes are affected by the explosion?
+        foe_positions_tuple = tuple(foe_position_array.T)
+        foes_in_explosion   = own_bomb_spread[foe_positions_tuple]  # Boolean mask
+
+        # Estimate for kill probability
+        kill_probabilities = IDEA2_KILL_PROB * (4 - distances_to_me) / 3 * foes_in_explosion
+        expected_kills     = np.sum(kill_probabilities)
+    else:
+        expected_kills = 0
+
+    return expected_kills
+
+
+
+def best_bombing_spots (distance_map, expected_coins, expected_kills):
+    
+    points_for_coins = 1
+    points_for_kills = 5
+
+    time_until_next_bombing = distance_map + BOMB_COOLDOWN_TIME   # Time until next bomb can be placed
+    expected_points_map     = expected_coins * points_for_coins + expected_kills * points_for_kills
+    point_speed_map         = expected_points_map / time_until_next_bombing
+    max_point_speed         = np.amax(point_speed_map)
+
+    if max_point_speed > 0:
+        best_spots_mask = np.isclose(point_speed_map, max_point_speed)   # Safer test for float equality
         best_spots      = np.array(np.where(best_spots_mask)).T
     else:
         best_spots      = np.array([])
