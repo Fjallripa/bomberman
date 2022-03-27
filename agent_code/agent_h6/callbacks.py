@@ -16,29 +16,29 @@ from settings import SCENARIOS
 # Global Constants
 # ----------------
 
-SETUP = "test"   # "train" or "test"
+SETUP = "train"   # "train" or "test"
 
 # Performance Test parameters
 if SETUP == "test":
     AGENT_NAME   = "h6"
-    MODEL_NAME   = "coin-miner12"
-    SCENARIO     = "classic"
-    OTHER_AGENTS = ["rule-based", "rule-based", "rule-based"]
+    MODEL_NAME   = "peaceful-hunter-1"
+    SCENARIO     = "loot-box"
+    OTHER_AGENTS = ["peacefull_agent"]
     TEST_ROUNDS  = 10
 
 
 # All Training parameters
 if SETUP == "train":
     # Training setup parameters - CHANGE FOR EVERY TRAINING
-    AGENT_NAME          = "h4"
-    MODEL_NAME          = "coin-miner15"
-    SCENARIO            = "classic"
-    OTHER_AGENTS        = ["rule-based", "rule-based", "rule-based"]
-    TRAINING_ROUNDS     = 100
+    AGENT_NAME          = "h6"
+    MODEL_NAME          = "peaceful-hunter-1"
+    SCENARIO            = "loot-box"
+    OTHER_AGENTS        = ["peaceful_agent"]
+    TRAINING_ROUNDS     = 2000
     START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
 
     # Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
-    EPSILON_MODE = "rounds"
+    EPSILON_MODE = "old"
     if EPSILON_MODE == "experience":
         EPSILON_AT_START     = 1
         EPSILON_THRESHOLD    = 0.1
@@ -59,7 +59,7 @@ if SETUP == "train":
     GAMMA             = 1
     MODE              = "SARSA"   # "SARSA" or "Q-Learning"
     N                 = 5   # N-step Q-learning
-    Q_SAVE_INTERVAL   = 1
+    Q_SAVE_INTERVAL   = 5
 
     # Rewards
     REWARDS = {
@@ -74,7 +74,7 @@ if SETUP == "train":
 
 # Hyperparameters for agent behavior - CHANGE IF YOU WANT
 ## Hunter Mode Idea 0
-HUNTER_MODE_IDEA = 2   # 0, 1, 2 or 3
+HUNTER_MODE_IDEA = 1   # 0 oder 1
 
 if HUNTER_MODE_IDEA == 0:
     FOE_TRIGGER_DISTANCE = 5
@@ -390,7 +390,7 @@ def state_to_features (self, game_state):
     bombing_is_dumb = False
     
     # Don't go where it's invalid or suicidal
-    going_is_dumb   = np.array([( (not reachability_map[(x,y)]) or free_spacetime_map[1][(x,y)] ) for [x,y] in neighbors])
+    going_is_dumb   = np.array([( (not reachability_map[(x,y)]) or not free_spacetime_map[(1, x, y)] ) for [x,y] in neighbors])
     
     # Don't place a bomb if you're not able to
     if not can_place_bomb: 
@@ -439,12 +439,12 @@ def state_to_features (self, game_state):
     else:   # Idea 1: Hunter mode only when no more coins to collect
         hunter_condition = len(foes) > 0 and self.already_collected_coins == COINS
     
-    if hunter_condition:
-        mode = 2   # Hunter mode
-        self.logger.debug(f"Hunter mode")
-    elif len(reachable_coins) > 0:
+    if len(reachable_coins) > 0:
         mode = 0   # Collector mode
         self.logger.debug(f"Collector mode")
+    elif hunter_condition:
+        mode = 2   # Hunter mode
+        self.logger.debug(f"Hunter mode")
     else:
         mode = 1   # Miner mode
         self.logger.debug(f"Miner mode")
@@ -467,7 +467,8 @@ def state_to_features (self, game_state):
             hidden_coin_density = coin_density(crate_map, self.already_collected_coins)
             expected_new_coins  = expected_coins_uncovered(crates_destroyed_map, sensible_bombing_map, hidden_coin_density)
             expected_kills      = expected_foes_killed(foe_positions, own_position)
-            best_bomb_spots     = best_bombing_spots(distance_map, expected_new_coins, expected_kills)
+            expected_kill_map   = create_mask(own_position) * expected_kills
+            best_bomb_spots     = best_bombing_spots(distance_map, expected_new_coins, expected_kill_map)
         
         goals = make_goals(best_bomb_spots, direction_map, own_position)
         
@@ -480,7 +481,16 @@ def state_to_features (self, game_state):
             goals[4] = True
         
         #! TODO: Implement Hunter mode idea 3:
+        """
+        local_bombing_spots = np.append(neighbors[not going_is_dumb], np.array(own_position)[not bombing_is_dumb])
+        local_kill_expectation = np.vectorize(expected_foe_kills, excluded = "foe_positions")(foe_positions, local_bombing_spots) if len(local_bombing_spots) > 0 else 0
         
+        if np.all(local_kill_expectation == 0):
+            closest_foe = select_nearest(foe_positions, distance_map) # improve by selecting foes in bomb spread, not only nearest
+            goals       = make_goals(closest_foe, direction_map, own_position)
+        else:
+            goals       = local_kill_expectation == np.amax(local_kill_expectation)
+        """
 
     # 5. Assemble feature array
     features = np.full(5, 1)
@@ -506,11 +516,13 @@ def state_to_features (self, game_state):
 
 
 def create_mask(positions, shape = (ROWS, COLS)):
-    array          = np.zeros(shape)
-    indices        = tuple(np.array(positions).T)
-    array[indices] = True
-    return(array)
-
+    array = np.zeros(shape)
+    if len(positions) > 0:
+        indices        = tuple(np.array(positions).T)
+        array[indices] = True
+        return(array)
+    else:
+        return(array)
 
 
 def build_free_spacetime_map(own_position, game_field, explosion_map, bombs, foe_map):
@@ -777,9 +789,7 @@ def expected_foes_killed (foe_positions, own_position):
     else:
         expected_kills = 0
 
-    expected_kill_map = create_mask(own_position) * expected_kills
-
-    return expected_kill_map
+    return expected_kills
 
 
 
