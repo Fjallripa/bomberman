@@ -23,8 +23,8 @@ if SETUP == "test":
     AGENT_NAME   = "h4"
     MODEL_NAME   = "coin-miner12"
     SCENARIO     = "classic"
-    OTHER_AGENTS = ["rule-based", "rule-based", "rule-based"]
-    TEST_ROUNDS  = 10
+    OTHER_AGENTS = ["rule_based", "rule_based", "rule_based"]
+    TEST_ROUNDS  = 300
 
 
 # All Training parameters
@@ -33,7 +33,7 @@ if SETUP == "train":
     AGENT_NAME          = "h4"
     MODEL_NAME          = "coin-miner15"
     SCENARIO            = "classic"
-    OTHER_AGENTS        = ["rule-based", "rule-based", "rule-based"]
+    OTHER_AGENTS        = ["rule_based", "rule_based", "rule_based"]
     TRAINING_ROUNDS     = 100
     START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
 

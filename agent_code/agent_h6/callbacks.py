@@ -59,7 +59,7 @@ if SETUP == "train":
     GAMMA             = 1
     MODE              = "SARSA"   # "SARSA" or "Q-Learning"
     N                 = 5   # N-step Q-learning
-    Q_SAVE_INTERVAL   = 5
+    Q_SAVE_INTERVAL   = 10
 
     # Rewards
     REWARDS = {
