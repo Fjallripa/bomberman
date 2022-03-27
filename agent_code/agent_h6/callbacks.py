@@ -74,15 +74,15 @@ if SETUP == "train":
 
 # Hyperparameters for agent behavior - CHANGE IF YOU WANT
 ## Hunter Mode Idea 0
-HUNTER_MODE_IDEA = 1   # 0 oder 1
+HUNTER_MODE_IDEA = True   # True or False
 
-if HUNTER_MODE_IDEA == 0:
+if HUNTER_MODE_IDEA == False:
     FOE_TRIGGER_DISTANCE = 5
 else:
     IDEA2_KILL_PROB = 0.2
 
-STRIKING_DISTANCE    = 3
-MAX_WAITING_TIME     = 2
+STRIKING_DISTANCE = 3
+MAX_WAITING_TIME  = 2
 
 
 
