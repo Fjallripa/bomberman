@@ -57,8 +57,6 @@ class GenericWorld:
 
         self.running = False
 
-        # added
-        self.action_memory = deque(maxlen = 4)
 
     def setup_logging(self):
         self.logger = logging.getLogger('BombeRLeWorld')
@@ -106,6 +104,9 @@ class GenericWorld:
 
         self.round = new_round
         self.running = True
+
+        # added
+        self.action_memory = deque(["INITIAL", "INITIAL","INITIAL", "INITIAL"], maxlen = 4)
 
     def build_arena(self) -> Tuple[np.array, List[Coin], List[Agent]]:
         raise NotImplementedError()
@@ -156,11 +157,17 @@ class GenericWorld:
 
         # added
         self.action_memory.append(action)
-        if len(self.action_memory) == 4:
-            if self.action_memory.count("WAIT") == 4:
-                agent.add_event(e.WAITED_TOO_LONG)
-            elif self.action_memory[0] == self.action_memory[2] and self.action_memory[1] == self.action_memory[3] and self.action_memory[0] != self.action_memory[1]:
-                agent.add_event(e.LOOP)
+        self.logger.debug(f'paa(): action_memory = {self.action_memory}.')
+        # print(self.action_memory)
+        if self.action_memory.count("WAIT") == 4:
+            agent.add_event(e.WAITED_TOO_LONG)
+        """
+        still buggy: 
+        elif self.action_memory == deque(["UP", "DOWN", "UP", "DOWN"]) or self.action_memory == deque(["DOWN", "UP", "DOWN", "UP"]) or \
+            self.action_memory == deque(["RIGHT", "LEFT", "RIGHT", "LEFT"]) or self.action_memory == deque(["LEFT", "RIGHT", "LEFT", "RIGHT"]):
+            agent.add_event(e.LOOP)
+            # print("LOOP DETECTED")
+        """
 
 
     def poll_and_run_agents(self):
