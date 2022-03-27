@@ -23,7 +23,7 @@ if SETUP == "test":
     AGENT_NAME   = "h6"
     MODEL_NAME   = "coin-miner12"
     SCENARIO     = "classic"
-    OTHER_AGENTS = ["rule-based", "rule-based", "rule-based"]
+    OTHER_AGENTS = ["rule_based", "rule_based", "rule_based"]
     TEST_ROUNDS  = 10
 
 
@@ -33,7 +33,7 @@ if SETUP == "train":
     AGENT_NAME          = "h4"
     MODEL_NAME          = "coin-miner15"
     SCENARIO            = "classic"
-    OTHER_AGENTS        = ["rule-based", "rule-based", "rule-based"]
+    OTHER_AGENTS        = ["rule_based", "rule_based", "rule_based"]
     TRAINING_ROUNDS     = 100
     START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
 
@@ -74,15 +74,15 @@ if SETUP == "train":
 
 # Hyperparameters for agent behavior - CHANGE IF YOU WANT
 ## Hunter Mode Idea 0
-HUNTER_MODE_IDEA = 2   # 0, 1, 2 or 3
+HUNTER_MODE_IDEA = True   # True or False
 
-if HUNTER_MODE_IDEA == 0:
+if HUNTER_MODE_IDEA == False:
     FOE_TRIGGER_DISTANCE = 5
 else:
     IDEA2_KILL_PROB = 0.2
 
-STRIKING_DISTANCE    = 3
-MAX_WAITING_TIME     = 2
+STRIKING_DISTANCE = 3
+MAX_WAITING_TIME  = 2
 
 
 
