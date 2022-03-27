@@ -1,0 +1,13 @@
+{
+    "test": {
+        "AGENT_NAME": "h4",
+        "MODEL_NAME": "coin-miner12",
+        "SCENARIO": "classic",
+        "OTHER_AGENTS": [
+            "rule-based",
+            "rule-based",
+            "rule-based"
+        ],
+        "TEST_ROUNDS": 10
+    }
+}

@@ -16,51 +16,67 @@ from settings import SCENARIOS
 # Global Constants
 # ----------------
 
-# Changeable Parameters
+SETUP = "test"   # "train" or "test"
 
-## Training parameters - CHANGE FOR EVERY TRAINING
-AGENT_NAME          = "h4"
-MODEL_NAME          = "coin-miner"
-SCENARIO            = "loot-box"
-OTHER_AGENTS        = []
-TRAINING_ROUNDS     = 3000
-START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
+# Performance Test parameters
+if SETUP == "test":
+    AGENT_NAME   = "h4"
+    MODEL_NAME   = "coin-miner12"
+    SCENARIO     = "classic"
+    OTHER_AGENTS = ["rule-based", "rule-based", "rule-based"]
+    TEST_ROUNDS  = 10
 
-## Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
-EPSILON_MODE = "rounds"
-if EPSILON_MODE == "experience":
-    EPSILON_AT_START     = 1
-    EPSILON_THRESHOLD    = 0.1
-    EPSILON_AT_INFINITY  = 0.01
-    THRESHOLD_EXPERIENCE = 5000
-if EPSILON_MODE == "rounds":
-    EPSILON_AT_ROUND_ZERO = 1
-    EPSILON_THRESHOLD     = 0.1
-    EPSILON_AT_INFINITY   = 0.001
-    THRESHOLD_FRACTION    = 0.33
-if EPSILON_MODE == "old":
-    EPSILON_AT_ROUND_ZERO = 1
-    EPSILON_AT_ROUND_LAST = 0.01
 
-## Hyperparameters for Q-update - CHANGE IF YOU WANT
-DOUBLE_Q_LEARNING = False
-ALPHA             = 0.1
-GAMMA             = 1
-MODE              = "SARSA"   # "SARSA" or "Q-Learning"
-N                 = 5   # N-step Q-learning
+# All Training parameters
+if SETUP == "train":
+    # Training setup parameters - CHANGE FOR EVERY TRAINING
+    AGENT_NAME          = "h4"
+    MODEL_NAME          = "coin-miner15"
+    SCENARIO            = "classic"
+    OTHER_AGENTS        = ["rule-based", "rule-based", "rule-based"]
+    TRAINING_ROUNDS     = 100
+    START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
 
-## Hyperparameters for agent behavior - CHANGE IF YOU WANT
+    # Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
+    EPSILON_MODE = "rounds"
+    if EPSILON_MODE == "experience":
+        EPSILON_AT_START     = 1
+        EPSILON_THRESHOLD    = 0.1
+        EPSILON_AT_INFINITY  = 0.01
+        THRESHOLD_EXPERIENCE = 5000
+    if EPSILON_MODE == "rounds":
+        EPSILON_AT_ROUND_ZERO = 1
+        EPSILON_THRESHOLD     = 0.1
+        EPSILON_AT_INFINITY   = 0.001
+        THRESHOLD_FRACTION    = 0.33
+    if EPSILON_MODE == "old":
+        EPSILON_AT_ROUND_ZERO = 1
+        EPSILON_AT_ROUND_LAST = 0.01
+
+    # Hyperparameters for Q-update - CHANGE IF YOU WANT
+    DOUBLE_Q_LEARNING = False
+    ALPHA             = 0.1
+    GAMMA             = 1
+    MODE              = "SARSA"   # "SARSA" or "Q-Learning"
+    N                 = 5   # N-step Q-learning
+    Q_SAVE_INTERVAL   = 1
+
+    # Rewards
+    REWARDS = {
+        e.COIN_COLLECTED: 5,
+        e.INVALID_ACTION: -1,
+        e.CRATE_DESTROYED: 0.5,
+        e.KILLED_OPPONENT: 100,
+        #e.GOT_KILLED: -1,    
+    }
+
+
+# Hyperparameters for agent behavior - CHANGE IF YOU WANT
+## Hunter Mode Idea 0
 FOE_TRIGGER_DISTANCE = 5
 STRIKING_DISTANCE    = 3
 
-## Rewards
-REWARDS = {
-    e.COIN_COLLECTED: 5,
-    e.INVALID_ACTION: -1,
-    e.CRATE_DESTROYED: 0.5,
-    e.KILLED_OPPONENT: 100,
-    #e.GOT_KILLED: -1,    
-}
+
 
 
 
@@ -101,16 +117,17 @@ SA_COUNTER_FILE = f"models/sa_counter_{AGENT_NAME}_{MODEL_NAME}.npy"
 COINS = SCENARIOS[SCENARIO]['COIN_COUNT']
 
 ## Derive constants for epsilon annealing
-if EPSILON_MODE == "experience":
-    A = EPSILON_AT_START - EPSILON_AT_INFINITY
-    L = 1 / THRESHOLD_EXPERIENCE * np.log(A / (EPSILON_THRESHOLD - EPSILON_AT_INFINITY))
-if EPSILON_MODE == "rounds":
-    A               = EPSILON_AT_ROUND_ZERO - EPSILON_AT_INFINITY
-    ROUND_THRESHOLD = int(TRAINING_ROUNDS * THRESHOLD_FRACTION)
-    L               = 1 / ROUND_THRESHOLD * np.log(A / (EPSILON_THRESHOLD - EPSILON_AT_INFINITY))
-if EPSILON_MODE == "old":
-    EPSILON_AT_ROUND_ONE  = np.power(EPSILON_AT_ROUND_LAST / EPSILON_AT_ROUND_ZERO, 
-                                    1 / TRAINING_ROUNDS)  # n-th root of epsilon_at_last_round
+if SETUP == "train":
+    if EPSILON_MODE == "experience":
+        A = EPSILON_AT_START - EPSILON_AT_INFINITY
+        L = 1 / THRESHOLD_EXPERIENCE * np.log(A / (EPSILON_THRESHOLD - EPSILON_AT_INFINITY))
+    if EPSILON_MODE == "rounds":
+        A               = EPSILON_AT_ROUND_ZERO - EPSILON_AT_INFINITY
+        ROUND_THRESHOLD = int(TRAINING_ROUNDS * THRESHOLD_FRACTION)
+        L               = 1 / ROUND_THRESHOLD * np.log(A / (EPSILON_THRESHOLD - EPSILON_AT_INFINITY))
+    if EPSILON_MODE == "old":
+        EPSILON_AT_ROUND_ONE  = np.power(EPSILON_AT_ROUND_LAST / EPSILON_AT_ROUND_ZERO, 
+                                        1 / TRAINING_ROUNDS)  # n-th root of epsilon_at_last_round
 
 
 
@@ -132,9 +149,28 @@ def setup(self):
     :param self: This object is passed to all callbacks and you can set arbitrary values.
     """
 
+    if SETUP == "test":
+        # Save test related parameters in json file
+        params_file = 'logs/params_test.json'
+        params         = {}
+        params['test'] = {}
+
+        params['test']['AGENT_NAME']   = AGENT_NAME
+        params['test']['MODEL_NAME']   = MODEL_NAME
+        params['test']['SCENARIO']     = SCENARIO
+        params['test']['OTHER_AGENTS'] = OTHER_AGENTS
+        params['test']['TEST_ROUNDS']  = TEST_ROUNDS
+
+        with open(params_file, 'w') as file:
+            json.dump(params, file, indent = 4)
+        
+
     if self.train:
-       # Save traing related parameters in json file
-        params_file = 'logs/params.json'
+        if SETUP != "train":
+            print(f"\n\nSETUP must be set to 'train' if you want to train {AGENT_NAME}_{MODEL_NAME}! \n\n")
+
+        # Save traing related parameters in json file
+        params_file = 'logs/params_train.json'
         params             = {}
         params['training'] = {}
         params['epsilon']  = {}
@@ -166,6 +202,7 @@ def setup(self):
         params['Q-update']['GAMMA']             = GAMMA
         params['Q-update']['MODE']              = MODE
         params['Q-update']['N']                 = N
+        params['Q-update']['Q_SAVE_INTERVAL']   = Q_SAVE_INTERVAL
         params['agent']['FOE_TRIGGER_DISTANCE'] = FOE_TRIGGER_DISTANCE
         params['agent']['STRIKING_DISTANCE']    = STRIKING_DISTANCE
         params['agent']['COINS']                = COINS   
@@ -379,12 +416,19 @@ def state_to_features (self, game_state):
         foe_positions       = np.array([])
         min_foe_distance    = DEFAULT_DISTANCE    
     
-    if min_foe_distance <= FOE_TRIGGER_DISTANCE or self.already_collected_coins == COINS:
+    ## Testing out hunter modes
+    ### Idea 0
+    #if min_foe_distance <= FOE_TRIGGER_DISTANCE or self.already_collected_coins == COINS:
+    ### Idea 1
+    if len(foes) > 0 and self.already_collected_coins == COINS:
         mode = 2   # Hunter mode
+        self.logger.debug(f"Hunter mode")
     elif len(reachable_coins) > 0:
         mode = 0   # Collector mode
+        self.logger.debug(f"Collector mode")
     else:
         mode = 1   # Miner mode
+        self.logger.debug(f"Miner mode")
 
  
     # 4. Compute goal direction

@@ -1,0 +1,401 @@
+{
+    "by_agent": {
+        "agent_h4": {
+            "bombs": 76,
+            "coins": 34,
+            "crates": 312,
+            "got killed": 10,
+            "invalid": 66,
+            "moves": 836,
+            "rounds": 10,
+            "score": 34,
+            "steps": 1019,
+            "suicides": 7,
+            "time": 2.0520179271698
+        },
+        "rule_based_agent_0": {
+            "bombs": 240,
+            "coins": 19,
+            "crates": 348,
+            "got killed": 4,
+            "invalid": 76,
+            "kills": 1,
+            "moves": 2530,
+            "rounds": 10,
+            "score": 24,
+            "steps": 2859,
+            "suicides": 4,
+            "time": 6.488734245300293
+        },
+        "rule_based_agent_1": {
+            "bombs": 186,
+            "coins": 17,
+            "crates": 265,
+            "got killed": 6,
+            "invalid": 68,
+            "kills": 4,
+            "moves": 1864,
+            "rounds": 10,
+            "score": 37,
+            "steps": 2122,
+            "suicides": 5,
+            "time": 4.378175973892212
+        },
+        "rule_based_agent_2": {
+            "bombs": 191,
+            "coins": 20,
+            "crates": 325,
+            "got killed": 6,
+            "invalid": 59,
+            "kills": 2,
+            "moves": 1817,
+            "rounds": 10,
+            "score": 30,
+            "steps": 2075,
+            "suicides": 6,
+            "time": 4.137194395065308
+        }
+    },
+    "by_round": {
+        "Round 01 (2022-03-27 11-14-06)": {
+            "coins": [
+                5,
+                2,
+                2,
+                0
+            ],
+            "got killed": [
+                1,
+                0,
+                0,
+                1
+            ],
+            "invalid": [
+                10,
+                5,
+                7,
+                5
+            ],
+            "kills": [
+                0,
+                0,
+                0,
+                0
+            ],
+            "round": 1,
+            "steps": 400,
+            "suicides": [
+                1,
+                0,
+                0,
+                1
+            ]
+        },
+        "Round 02 (2022-03-27 11-14-09)": {
+            "coins": [
+                3,
+                1,
+                4,
+                1
+            ],
+            "got killed": [
+                1,
+                1,
+                0,
+                0
+            ],
+            "invalid": [
+                6,
+                4,
+                13,
+                7
+            ],
+            "kills": [
+                0,
+                0,
+                0,
+                0
+            ],
+            "round": 2,
+            "steps": 400,
+            "suicides": [
+                1,
+                1,
+                0,
+                0
+            ]
+        },
+        "Round 03 (2022-03-27 11-14-11)": {
+            "coins": [
+                0,
+                3,
+                2,
+                4
+            ],
+            "got killed": [
+                1,
+                0,
+                1,
+                0
+            ],
+            "invalid": [
+                5,
+                8,
+                10,
+                9
+            ],
+            "kills": [
+                0,
+                1,
+                0,
+                0
+            ],
+            "round": 3,
+            "steps": 400,
+            "suicides": [
+                1,
+                0,
+                0,
+                0
+            ]
+        },
+        "Round 04 (2022-03-27 11-14-14)": {
+            "coins": [
+                2,
+                1,
+                4,
+                2
+            ],
+            "got killed": [
+                1,
+                1,
+                0,
+                1
+            ],
+            "invalid": [
+                4,
+                12,
+                8,
+                3
+            ],
+            "kills": [
+                0,
+                0,
+                0,
+                0
+            ],
+            "round": 4,
+            "steps": 377,
+            "suicides": [
+                1,
+                1,
+                0,
+                1
+            ]
+        },
+        "Round 05 (2022-03-27 11-14-16)": {
+            "coins": [
+                5,
+                2,
+                1,
+                1
+            ],
+            "got killed": [
+                1,
+                0,
+                0,
+                1
+            ],
+            "invalid": [
+                8,
+                10,
+                10,
+                4
+            ],
+            "kills": [
+                0,
+                0,
+                2,
+                0
+            ],
+            "round": 5,
+            "steps": 400,
+            "suicides": [
+                1,
+                0,
+                0,
+                1
+            ]
+        },
+        "Round 06 (2022-03-27 11-14-19)": {
+            "coins": [
+                4,
+                1,
+                2,
+                2
+            ],
+            "got killed": [
+                1,
+                1,
+                1,
+                0
+            ],
+            "invalid": [
+                7,
+                7,
+                5,
+                1
+            ],
+            "kills": [
+                0,
+                0,
+                0,
+                1
+            ],
+            "round": 6,
+            "steps": 213,
+            "suicides": [
+                0,
+                1,
+                1,
+                0
+            ]
+        },
+        "Round 07 (2022-03-27 11-14-20)": {
+            "coins": [
+                4,
+                2,
+                1,
+                2
+            ],
+            "got killed": [
+                1,
+                0,
+                1,
+                1
+            ],
+            "invalid": [
+                5,
+                3,
+                5,
+                4
+            ],
+            "kills": [
+                0,
+                0,
+                1,
+                0
+            ],
+            "round": 7,
+            "steps": 186,
+            "suicides": [
+                0,
+                0,
+                1,
+                1
+            ]
+        },
+        "Round 08 (2022-03-27 11-14-21)": {
+            "coins": [
+                4,
+                4,
+                0,
+                1
+            ],
+            "got killed": [
+                1,
+                0,
+                1,
+                1
+            ],
+            "invalid": [
+                13,
+                2,
+                4,
+                4
+            ],
+            "kills": [
+                0,
+                0,
+                0,
+                1
+            ],
+            "round": 8,
+            "steps": 204,
+            "suicides": [
+                1,
+                0,
+                1,
+                1
+            ]
+        },
+        "Round 09 (2022-03-27 11-14-22)": {
+            "coins": [
+                4,
+                1,
+                1,
+                3
+            ],
+            "got killed": [
+                1,
+                1,
+                1,
+                0
+            ],
+            "invalid": [
+                6,
+                13,
+                3,
+                14
+            ],
+            "kills": [
+                0,
+                0,
+                0,
+                0
+            ],
+            "round": 9,
+            "steps": 350,
+            "suicides": [
+                1,
+                1,
+                1,
+                0
+            ]
+        },
+        "Round 10 (2022-03-27 11-14-24)": {
+            "coins": [
+                3,
+                2,
+                0,
+                4
+            ],
+            "got killed": [
+                1,
+                0,
+                1,
+                1
+            ],
+            "invalid": [
+                2,
+                12,
+                3,
+                8
+            ],
+            "kills": [
+                0,
+                0,
+                1,
+                0
+            ],
+            "round": 10,
+            "steps": 393,
+            "suicides": [
+                0,
+                0,
+                1,
+                1
+            ]
+        }
+    }
+}
