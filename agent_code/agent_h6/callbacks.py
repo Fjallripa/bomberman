@@ -31,10 +31,10 @@ if SETUP == "test":
 if SETUP == "train":
     # Training setup parameters - CHANGE FOR EVERY TRAINING
     AGENT_NAME          = "h6"
-    MODEL_NAME          = "coin-hunter1"
+    MODEL_NAME          = "BombCoin-Miner-1"
     SCENARIO            = "classic"
     OTHER_AGENTS        = ["rule_based", "rule_based", "rule_based"]
-    TRAINING_ROUNDS     = 500
+    TRAINING_ROUNDS     = 5000
     START_TRAINING_WITH = "coin-miner1"   # "RESET" or "<model_name>"
 
     # Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
@@ -50,8 +50,8 @@ if SETUP == "train":
         EPSILON_AT_INFINITY   = 0.001
         THRESHOLD_FRACTION    = 0.33
     if EPSILON_MODE == "old":
-        EPSILON_AT_ROUND_ZERO = 0.01
-        EPSILON_AT_ROUND_LAST = 0.0025
+        EPSILON_AT_ROUND_ZERO = 0.06
+        EPSILON_AT_ROUND_LAST = 0.005
 
     # Hyperparameters for Q-update - CHANGE IF YOU WANT
     DOUBLE_Q_LEARNING = False
@@ -79,7 +79,7 @@ HUNTER_MODE_IDEA = True   # True or False
 if HUNTER_MODE_IDEA == False:
     FOE_TRIGGER_DISTANCE = 5
 else:
-    IDEA2_KILL_PROB = 0.2
+    IDEA2_KILL_PROB = 0.008
 
 STRIKING_DISTANCE = 3
 MAX_WAITING_TIME  = 2
@@ -432,10 +432,13 @@ def state_to_features (self, game_state):
         no_future_explosion_mask = np.logical_not(BOMB_MASK[own_position])
         rescue_distances         = distance_map[reachability_map & no_future_explosion_mask] # improve by including explosions
         minimal_rescue_distance  = DEFAULT_DISTANCE if (rescue_distances.size == 0) else np.amin(rescue_distances) 
+        self.logger.debug(f'stf(): minimal rescue distance for own bombing: {minimal_rescue_distance}')
         if minimal_rescue_distance > 4:
             bombing_is_dumb = True
             self.dumb_bombing_map[own_position] = bombing_is_dumb 
     
+    self.logger.debug(f'stf(): bombing is dumb is {bombing_is_dumb}.')
+
     # 3. Check game mode
     reachable_coins = select_reachable(collectable_coins, reachability_map)
     
