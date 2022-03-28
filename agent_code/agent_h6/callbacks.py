@@ -16,26 +16,26 @@ from settings import SCENARIOS
 # Global Constants
 # ----------------
 
-SETUP = "train"   # "train" or "test"
+SETUP = "test"   # "train" or "test"
 
 # Performance Test parameters
 if SETUP == "test":
     AGENT_NAME   = "h6"
-    MODEL_NAME   = "peaceful-hunter-1"
-    SCENARIO     = "loot-box"
-    OTHER_AGENTS = ["peacefull_agent"]
-    TEST_ROUNDS  = 10
+    MODEL_NAME   = "coin-miner1"
+    SCENARIO     = "classic"
+    OTHER_AGENTS = ["rule_based", "rule_based", "rule_based"]
+    TEST_ROUNDS  = 300
 
 
 # All Training parameters
 if SETUP == "train":
     # Training setup parameters - CHANGE FOR EVERY TRAINING
     AGENT_NAME          = "h6"
-    MODEL_NAME          = "peaceful-hunter-1"
+    MODEL_NAME          = "coin-miner2"
     SCENARIO            = "loot-box"
-    OTHER_AGENTS        = ["peaceful_agent"]
-    TRAINING_ROUNDS     = 2000
-    START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
+    OTHER_AGENTS        = ["rule_based", "rule_based", "rule_based"]
+    TRAINING_ROUNDS     = 10000
+    START_TRAINING_WITH = "coin-miner1"   # "RESET" or "<model_name>"
 
     # Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
     EPSILON_MODE = "old"
@@ -50,8 +50,8 @@ if SETUP == "train":
         EPSILON_AT_INFINITY   = 0.001
         THRESHOLD_FRACTION    = 0.33
     if EPSILON_MODE == "old":
-        EPSILON_AT_ROUND_ZERO = 1
-        EPSILON_AT_ROUND_LAST = 0.01
+        EPSILON_AT_ROUND_ZERO = 0.03
+        EPSILON_AT_ROUND_LAST = 0.0025
 
     # Hyperparameters for Q-update - CHANGE IF YOU WANT
     DOUBLE_Q_LEARNING = False
@@ -59,15 +59,15 @@ if SETUP == "train":
     GAMMA             = 1
     MODE              = "SARSA"   # "SARSA" or "Q-Learning"
     N                 = 5   # N-step Q-learning
-    Q_SAVE_INTERVAL   = 10
+    Q_SAVE_INTERVAL   = 50
 
     # Rewards
     REWARDS = {
         e.COIN_COLLECTED: 5,
         e.INVALID_ACTION: -1,
-        e.CRATE_DESTROYED: 0.5,
+        #e.CRATE_DESTROYED: 0.5,
         e.KILLED_OPPONENT: 100,
-        #e.WAITED_TOO_LONG: -0.1,
+        e.WAITED_TOO_LONG: -0.1,
         #e.GOT_KILLED: -1,    
     }
 
@@ -79,7 +79,7 @@ HUNTER_MODE_IDEA = True   # True or False
 if HUNTER_MODE_IDEA == False:
     FOE_TRIGGER_DISTANCE = 5
 else:
-    IDEA2_KILL_PROB = 0.2
+    IDEA2_KILL_PROB = 0.5
 
 STRIKING_DISTANCE = 3
 MAX_WAITING_TIME  = 2
@@ -159,15 +159,24 @@ def setup(self):
 
     if SETUP == "test":
         # Save test related parameters in json file
-        params_file = 'logs/params_test.json'
-        params         = {}
-        params['test'] = {}
+        params_file     = 'logs/params_test.json'
+        params          = {}
+        params['test']  = {}
+        params['agent'] = {}
 
         params['test']['AGENT_NAME']   = AGENT_NAME
         params['test']['MODEL_NAME']   = MODEL_NAME
         params['test']['SCENARIO']     = SCENARIO
         params['test']['OTHER_AGENTS'] = OTHER_AGENTS
         params['test']['TEST_ROUNDS']  = TEST_ROUNDS
+        params['agent']['HUNTER_MODE_IDEA']         = HUNTER_MODE_IDEA
+        if HUNTER_MODE_IDEA == False:
+            params['agent']['FOE_TRIGGER_DISTANCE'] = FOE_TRIGGER_DISTANCE
+        else:
+            params['agent']['IDEA2_KILL_PROB']      = IDEA2_KILL_PROB
+        params['agent']['STRIKING_DISTANCE']        = STRIKING_DISTANCE
+        params['agent']['COINS']                    = COINS
+        params['agent']['MAX_WAITING_TIME']         = MAX_WAITING_TIME
 
         with open(params_file, 'w') as file:
             json.dump(params, file, indent = 4)
@@ -211,12 +220,14 @@ def setup(self):
         params['Q-update']['MODE']              = MODE
         params['Q-update']['N']                 = N
         params['Q-update']['Q_SAVE_INTERVAL']   = Q_SAVE_INTERVAL
-        if HUNTER_MODE_IDEA == 0:
+        params['agent']['HUNTER_MODE_IDEA']         = HUNTER_MODE_IDEA
+        if HUNTER_MODE_IDEA == False:
             params['agent']['FOE_TRIGGER_DISTANCE'] = FOE_TRIGGER_DISTANCE
-        params['agent']['HUNTER_MODE_IDEA']     = HUNTER_MODE_IDEA
-        params['agent']['STRIKING_DISTANCE']    = STRIKING_DISTANCE
-        params['agent']['COINS']                = COINS
-        params['agent']['MAX_WAITING_TIME']     = MAX_WAITING_TIME
+        else:
+            params['agent']['IDEA2_KILL_PROB']      = IDEA2_KILL_PROB
+        params['agent']['STRIKING_DISTANCE']        = STRIKING_DISTANCE
+        params['agent']['COINS']                    = COINS
+        params['agent']['MAX_WAITING_TIME']         = MAX_WAITING_TIME
         params['rewards'] = REWARDS         
         
         with open(params_file, 'w') as file:
@@ -347,6 +358,7 @@ def state_to_features (self, game_state):
     neighbors     = own_position + DIRECTIONS
     foe_positions = [foe[3] for foe in foes]
     foe_map = create_mask(foe_positions)
+    foe_count = len(foe_positions)
             
 
     ## Define variables for updates & reset for each round
@@ -428,7 +440,7 @@ def state_to_features (self, game_state):
     reachable_coins = select_reachable(collectable_coins, reachability_map)
     
     ## Testing out hunter modes
-    if len(foes) > 0:
+    if foe_count > 0:
         foe_positions_tuple = tuple(np.array(foe_positions).T)
         min_foe_distance    = np.amin(distance_map[foe_positions_tuple])
     else:
@@ -437,7 +449,7 @@ def state_to_features (self, game_state):
     if HUNTER_MODE_IDEA == 0:  # Idea 0: Activate Hunter Mode when foe is close
         hunter_condition = min_foe_distance <= FOE_TRIGGER_DISTANCE or self.already_collected_coins == COINS
     else:   # Idea 1: Hunter mode only when no more coins to collect
-        hunter_condition = len(foes) > 0 and self.already_collected_coins == COINS
+        hunter_condition = foe_count > 0 and self.already_collected_coins == COINS
     
     if len(reachable_coins) > 0:
         mode = 0   # Collector mode
@@ -464,7 +476,7 @@ def state_to_features (self, game_state):
         if HUNTER_MODE_IDEA == 0:   # Idea 0: Normal CoinMiner calculations
             best_bomb_spots = best_crate_bombing_spots(distance_map, crates_destroyed_map, sensible_bombing_map)
         else:                       # Idea 2: Include Hunter aspects into bombing spot calculation
-            hidden_coin_density = coin_density(crate_map, self.already_collected_coins)
+            hidden_coin_density = coin_density(crate_map, self.already_collected_coins, foe_count)
             expected_new_coins  = expected_coins_uncovered(crates_destroyed_map, sensible_bombing_map, hidden_coin_density)
             expected_kills      = expected_foes_killed(foe_positions, own_position)
             expected_kill_map   = create_mask(own_position) * expected_kills
@@ -488,7 +500,6 @@ def state_to_features (self, game_state):
             local_kill_expectation[np.append(going_is_dumb, np.array(bombing_is_dumb))] = 0
 
             if np.all(local_kill_expectation == 0):
-                foe_count = len(foe_positions)
                 foe_neighbors = (np.array(foe_positions).reshape(foe_count, 1, 2) + np.resize(np.array(DIRECTIONS), (foe_count,4,2))).reshape(-1,2)
                 closest_foe_neighbors = select_nearest(foe_neighbors, distance_map) # search for closest neighbors because foes unreachable
                 goals       = make_goals(closest_foe_neighbors, direction_map, own_position)
@@ -755,14 +766,18 @@ def best_crate_bombing_spots (distance_map, number_of_destroyed_crates_map, sens
 
 
 
-def coin_density (crate_map, already_collected_coins):
-    number_of_crates       = np.sum(crate_map == 1)
-    number_of_hidden_coins = COINS - already_collected_coins
-    if number_of_crates > 0:
-        hidden_coin_density = number_of_hidden_coins / number_of_crates
+def coin_density (crate_map, already_collected_coins, foe_count):
+    if already_collected_coins == COINS and foe_count == 0:
+        hidden_coin_density = 1
     else:
-        hidden_coin_density = 0
+        number_of_crates       = np.sum(crate_map == 1)
+        number_of_hidden_coins = COINS - already_collected_coins
+        if number_of_crates > 0:
+            hidden_coin_density = number_of_hidden_coins / number_of_crates
+        else:
+            hidden_coin_density = 0
     
+
     return hidden_coin_density
 
 

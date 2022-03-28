@@ -16,7 +16,7 @@ from settings import SCENARIOS
 # Global Constants
 # ----------------
 
-SETUP = "test"   # "train" or "test"
+SETUP = "train"   # "train" or "test"
 
 # Performance Test parameters
 if SETUP == "test":
@@ -31,14 +31,14 @@ if SETUP == "test":
 if SETUP == "train":
     # Training setup parameters - CHANGE FOR EVERY TRAINING
     AGENT_NAME          = "h4"
-    MODEL_NAME          = "coin-miner15"
-    SCENARIO            = "classic"
-    OTHER_AGENTS        = ["rule_based", "rule_based", "rule_based"]
-    TRAINING_ROUNDS     = 100
+    MODEL_NAME          = "coin-hunter2"
+    SCENARIO            = "loot-box"
+    OTHER_AGENTS        = []
+    TRAINING_ROUNDS     = 10000
     START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
 
     # Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
-    EPSILON_MODE = "rounds"
+    EPSILON_MODE = "old (Q_interval)"
     if EPSILON_MODE == "experience":
         EPSILON_AT_START     = 1
         EPSILON_THRESHOLD    = 0.1
@@ -52,6 +52,9 @@ if SETUP == "train":
     if EPSILON_MODE == "old":
         EPSILON_AT_ROUND_ZERO = 1
         EPSILON_AT_ROUND_LAST = 0.01
+    if EPSILON_MODE == "old (Q_interval)":
+        EPSILON_AT_ROUND_ZERO = 1
+        EPSILON_AT_ROUND_LAST = 0.01
 
     # Hyperparameters for Q-update - CHANGE IF YOU WANT
     DOUBLE_Q_LEARNING = False
@@ -59,6 +62,7 @@ if SETUP == "train":
     GAMMA             = 1
     MODE              = "SARSA"   # "SARSA" or "Q-Learning"
     N                 = 5   # N-step Q-learning
+    Q_UPDATE_INTERVAL = 10
     Q_SAVE_INTERVAL   = 1
 
     # Rewards
@@ -73,9 +77,9 @@ if SETUP == "train":
 
 # Hyperparameters for agent behavior - CHANGE IF YOU WANT
 ## Hunter Mode Idea 0
-HUNTER_MODE_IDEA = 2   # 0, 1, 2 or 3
+HUNTER_MODE_IDEA = True   # True or False
 
-if HUNTER_MODE_IDEA == 0:
+if HUNTER_MODE_IDEA == False:
     FOE_TRIGGER_DISTANCE = 5
 else:
     IDEA2_KILL_PROB = 0.2
@@ -134,6 +138,11 @@ if SETUP == "train":
     if EPSILON_MODE == "old":
         EPSILON_AT_ROUND_ONE  = np.power(EPSILON_AT_ROUND_LAST / EPSILON_AT_ROUND_ZERO, 
                                         1 / TRAINING_ROUNDS)  # n-th root of epsilon_at_last_round
+    if EPSILON_MODE == "old (Q_interval)":
+        EPSILON_AT_ROUND_ONE  = np.power(EPSILON_AT_ROUND_LAST / EPSILON_AT_ROUND_ZERO, 
+                                        1 / (TRAINING_ROUNDS // Q_UPDATE_INTERVAL))  # n-th root of epsilon_at_last_round
+
+
 
 
 
@@ -200,7 +209,7 @@ def setup(self):
             params['epsilon']['EPSILON_THRESHOLD']     = EPSILON_THRESHOLD
             params['epsilon']['EPSILON_AT_INFINITY']   = EPSILON_AT_INFINITY
             params['epsilon']['THRESHOLD_FRACTION']    = THRESHOLD_FRACTION
-        if EPSILON_MODE == "old":
+        if EPSILON_MODE == "old" or EPSILON_MODE == "old (Q_interval)":
             params['epsilon']['EPSILON_AT_ROUND_ZERO'] = EPSILON_AT_ROUND_ZERO
             params['epsilon']['EPSILON_AT_ROUND_LAST'] = EPSILON_AT_ROUND_LAST
         params['Q-update']['DOUBLE_Q_LEARNING'] = DOUBLE_Q_LEARNING
@@ -208,10 +217,15 @@ def setup(self):
         params['Q-update']['GAMMA']             = GAMMA
         params['Q-update']['MODE']              = MODE
         params['Q-update']['N']                 = N
+        params['Q-update']['Q_UPDATE_INTERVAL'] = Q_UPDATE_INTERVAL
         params['Q-update']['Q_SAVE_INTERVAL']   = Q_SAVE_INTERVAL
-        params['agent']['FOE_TRIGGER_DISTANCE'] = FOE_TRIGGER_DISTANCE
-        params['agent']['STRIKING_DISTANCE']    = STRIKING_DISTANCE
-        params['agent']['COINS']                = COINS   
+        params['agent']['HUNTER_MODE_IDEA']         = HUNTER_MODE_IDEA
+        if HUNTER_MODE_IDEA == False:
+            params['agent']['FOE_TRIGGER_DISTANCE'] = FOE_TRIGGER_DISTANCE
+        else:
+            params['agent']['IDEA2_KILL_PROB']      = IDEA2_KILL_PROB
+        params['agent']['STRIKING_DISTANCE']        = STRIKING_DISTANCE
+        params['agent']['COINS']                    = COINS   
         params['rewards'] = REWARDS         
         
         with open(params_file, 'w') as file:
@@ -239,11 +253,13 @@ def act(self, game_state: dict) -> str:
     :return: The action to take as a string.
     """
     
-
-    round = game_state['round']
-    self.logger.debug(f"act(): Round {round}, Step {game_state['step']}:")
-    
     #if self.train:  self.timer_act.start()
+
+    round          = game_state['round']
+    step           = game_state['step']
+    current_update = (round - 1) // Q_UPDATE_INTERVAL + 1
+    self.logger.debug(f"act(): Update: {current_update}, Round {round}, Step {step}:")
+    
 
     # Calculate Q-state (`state_indices`) from game_state
     features                  = state_to_features(self, game_state)
@@ -262,6 +278,8 @@ def act(self, game_state: dict) -> str:
             eps                      = epsilon(round)
         elif EPSILON_MODE == "old":
             eps                      = epsilon_old(round)
+        elif EPSILON_MODE == "old (Q_interval)":
+            eps                      = epsilon_old(current_update)
 
         # Choose policy action with probability 1 - eps
         sorted_policy, label \

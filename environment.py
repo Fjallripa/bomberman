@@ -159,7 +159,7 @@ class GenericWorld:
         self.action_memory.append(action)
         self.logger.debug(f'paa(): action_memory = {self.action_memory}.')
         # print(self.action_memory)
-        if self.action_memory.count("WAIT") == 4:
+        if self.action_memory.count("WAIT") == 5:
             agent.add_event(e.WAITED_TOO_LONG)
         """
         still buggy: 

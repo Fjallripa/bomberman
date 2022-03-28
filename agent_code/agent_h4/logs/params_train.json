@@ -1,22 +1,16 @@
 {
     "training": {
         "AGENT_NAME": "h4",
-        "MODEL_NAME": "coin-miner15",
-        "SCENARIO": "classic",
-        "OTHER_AGENTS": [
-            "rule-based",
-            "rule-based",
-            "rule-based"
-        ],
-        "TRAINING_ROUNDS": 100,
+        "MODEL_NAME": "coin-hunter2",
+        "SCENARIO": "loot-box",
+        "OTHER_AGENTS": [],
+        "TRAINING_ROUNDS": 10000,
         "START_TRAINING_WITH": "RESET"
     },
     "epsilon": {
-        "EPSILON_MODE": "rounds",
+        "EPSILON_MODE": "old (Q_interval)",
         "EPSILON_AT_ROUND_ZERO": 1,
-        "EPSILON_THRESHOLD": 0.1,
-        "EPSILON_AT_INFINITY": 0.001,
-        "THRESHOLD_FRACTION": 0.33
+        "EPSILON_AT_ROUND_LAST": 0.01
     },
     "Q-update": {
         "DOUBLE_Q_LEARNING": false,
@@ -24,12 +18,14 @@
         "GAMMA": 1,
         "MODE": "SARSA",
         "N": 5,
+        "Q_UPDATE_INTERVAL": 10,
         "Q_SAVE_INTERVAL": 1
     },
     "agent": {
-        "FOE_TRIGGER_DISTANCE": 5,
+        "HUNTER_MODE_IDEA": true,
+        "IDEA2_KILL_PROB": 0.2,
         "STRIKING_DISTANCE": 3,
-        "COINS": 9
+        "COINS": 50
     },
     "rewards": {
         "COIN_COLLECTED": 5,

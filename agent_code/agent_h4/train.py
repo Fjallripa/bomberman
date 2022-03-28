@@ -4,13 +4,14 @@
 
 import os
 from telnetlib import DO
+from turtle import update
 import numpy as np
 from typing import List
 #from codetiming import Timer
 
 from .callbacks import MODEL_FILE, SA_COUNTER_FILE
 from .callbacks import ALPHA, GAMMA, MODE, N, REWARDS, DOUBLE_Q_LEARNING
-from .callbacks import START_TRAINING_WITH, AGENT_NAME, Q_SAVE_INTERVAL
+from .callbacks import START_TRAINING_WITH, AGENT_NAME, Q_SAVE_INTERVAL, Q_UPDATE_INTERVAL
 from .callbacks import random_argmax
 
 
@@ -76,6 +77,7 @@ def setup_training(self):
     self.state_indices   = []
     self.sorted_policies = []
     self.rewards         = []
+    self.round_lengths   = np.zeros(Q_UPDATE_INTERVAL, dtype = int)
     
 
     # Time training and log it
@@ -164,11 +166,17 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
 
     # Update training data of last round
     reward       = reward_from_events(self, events)   # give auxiliary rewards
-    round_length = len(self.state_indices)
+    round_length = len(self.state_indices) - np.sum(self.round_lengths)
     if round_length == 400:
         self.rewards[-1] += reward
     else:
         self.rewards.append(reward)
+
+    ## For Q_UPDATE_INTERVAL != 0, save the current round length
+    current_round = last_game_state['round']
+    round_index   = (current_round - 1) % Q_UPDATE_INTERVAL
+    self.round_lengths[round_index] \
+                  = round_length
     
     
     ## Logging
@@ -178,48 +186,57 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
 
 
     # Alernatingly updating Q_A and Q_B by collecting rewards from all encountered states and estimating their gain.
-    current_round      = last_game_state['round']
-    sum_of_gain_per_Sa = np.zeros_like(self.model)
-    number_of_Sa_steps = np.zeros_like(self.model, dtype = int)
-
-    for step in range(round_length):
-        # Calculate the state-action pair (S, a)
-        state_indices = self.state_indices[step]
-        sorted_policy = self.sorted_policies[step]
+    if current_round % Q_UPDATE_INTERVAL == 0:
+        current_update = (current_round - 1) // Q_UPDATE_INTERVAL + 1
+        update_length  = len(self.state_indices)
+        cumulative_round_lengths = np.cumsum(self.round_lengths)
         
-        # Update gain for (S, a)
-        sum_of_gain_per_Sa[state_indices][sorted_policy] += Q_update(self, step, current_round)
-        number_of_Sa_steps[state_indices][sorted_policy] += 1
+        sum_of_gain_per_Sa = np.zeros_like(self.model)
+        number_of_Sa_steps = np.zeros_like(self.model, dtype = int)
 
-    self.Sa_counter += number_of_Sa_steps   # Collects total number of encounters with each (S, a) during training.
+        for step_index in range(update_length):
+            # Index of next round
+            index_next_round      = np.sum(step_index >= cumulative_round_lengths)
+            step_count_next_round = self.round_lengths[index_next_round]
+
+            # Calculate the state-action pair (S, a)
+            state_indices = self.state_indices[step_index]
+            sorted_policy = self.sorted_policies[step_index]
+            
+            # Update gain for (S, a)
+            sum_of_gain_per_Sa[state_indices][sorted_policy] += Q_update(self, step_index, step_count_next_round, current_update)
+            number_of_Sa_steps[state_indices][sorted_policy] += 1
+
+        self.Sa_counter += number_of_Sa_steps   # Collects total number of encounters with each (S, a) during training.
 
 
-    # Q-Update
-    occured_Sa    = number_of_Sa_steps != 0   # True if Sa occured in last round, else False 
-    expected_gain = sum_of_gain_per_Sa[occured_Sa] / number_of_Sa_steps[occured_Sa]
+        # Q-Update
+        occured_Sa    = number_of_Sa_steps != 0   # True if Sa occured in last round, else False 
+        expected_gain = sum_of_gain_per_Sa[occured_Sa] / number_of_Sa_steps[occured_Sa]
+        
+        if current_update % 2 == 1:  self.Q_A[occured_Sa] = (1 - ALPHA) * self.Q_A[occured_Sa] + ALPHA * expected_gain
+        else:                        self.Q_B[occured_Sa] = (1 - ALPHA) * self.Q_B[occured_Sa] + ALPHA * expected_gain
     
-    if current_round % 2 == 1:  self.Q_A[occured_Sa] = (1 - ALPHA) * self.Q_A[occured_Sa] + ALPHA * expected_gain
-    else:                       self.Q_B[occured_Sa] = (1 - ALPHA) * self.Q_B[occured_Sa] + ALPHA * expected_gain
-  
-  
-    # Save updated Q-function as new model
-    self.model = self.Q_A  if (current_round % 2 == 1)  else self.Q_B
-    if not DOUBLE_Q_LEARNING: self.Q_A = self.Q_B = self.model  # Hopefully, syncronizing Q_A and Q_B undoes Double-Q-Learning
-    np.save(MODEL_FILE, self.model)
-    np.save(SA_COUNTER_FILE, self.Sa_counter)
+    
+        # Save updated Q-function as new model
+        self.model = self.Q_A  if (current_update % 2 == 1)  else self.Q_B
+        if not DOUBLE_Q_LEARNING: self.Q_A = self.Q_B = self.model  # Hopefully, syncronizing Q_A and Q_B undoes Double-Q-Learning
+        np.save(MODEL_FILE, self.model)
+        np.save(SA_COUNTER_FILE, self.Sa_counter)
 
     
-    # Clean up
-    self.state_indices   = []
-    self.sorted_policies = []
-    self.rewards         = []
+        # Reset training data
+        self.state_indices   = []
+        self.sorted_policies = []
+        self.rewards         = []
+        self.round_lengths   = np.zeros(Q_UPDATE_INTERVAL, dtype = int)
     
 
-    # Training analysis
+        # Training analysis
 
-    ## Save analysis data
-    if current_round % Q_SAVE_INTERVAL == 0:
-        np.save(Q_file(current_round), self.model) 
+        ## Save analysis data
+        if current_round % Q_SAVE_INTERVAL == 0:
+            np.save(Q_file(current_round), self.model) 
 
     ## Time the training and save the data
     '''
@@ -276,7 +293,7 @@ def reward_from_events(self, events: List[str]) -> int:
 
 
 
-def Q_update(self, t, round, mode = MODE, n = N,  gamma = GAMMA):
+def Q_update(self, t, next_round, update_number, mode = MODE, n = N,  gamma = GAMMA):
     """
     Computes the new value during Q-learning.
 
@@ -295,7 +312,7 @@ def Q_update(self, t, round, mode = MODE, n = N,  gamma = GAMMA):
     
     
     # Initializations
-    t_plus_n   = min(t+n, len(self.state_indices)-1)
+    t_plus_n   = min(t+n, next_round-1)
     v          = 0
     reward_sum = 0
 
@@ -303,7 +320,7 @@ def Q_update(self, t, round, mode = MODE, n = N,  gamma = GAMMA):
     state_indices = self.state_indices[t_plus_n]
 
     if mode == "Q-Learning":
-        if round % 2 == 1:
+        if update_number % 2 == 1:
             best_action_A = random_argmax(self.Q_A[state_indices])
             v             = self.Q_B[state_indices][best_action_A]
         else:
@@ -312,8 +329,8 @@ def Q_update(self, t, round, mode = MODE, n = N,  gamma = GAMMA):
     
     elif mode == "SARSA":
         chosen_action = self.sorted_policies[t_plus_n]
-        if round % 2 == 1:  v = self.Q_B[state_indices][chosen_action]
-        else:               v = self.Q_A[state_indices][chosen_action]
+        if update_number % 2 == 1:  v = self.Q_B[state_indices][chosen_action]
+        else:                       v = self.Q_A[state_indices][chosen_action]
     
     # Compute Reward Sum for next n steps
     for s in range(t, t_plus_n):
