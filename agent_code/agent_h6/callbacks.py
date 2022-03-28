@@ -16,25 +16,25 @@ from settings import SCENARIOS
 # Global Constants
 # ----------------
 
-SETUP = "train"   # "train" or "test"
+SETUP = "test"   # "train" or "test"
 
 # Performance Test parameters
 if SETUP == "test":
     AGENT_NAME   = "h6"
-    MODEL_NAME   = "coin-miner1"
+    MODEL_NAME   = "coin-hunter2"
     SCENARIO     = "classic"
     OTHER_AGENTS = ["rule_based", "rule_based", "rule_based"]
-    TEST_ROUNDS  = 300
+    TEST_ROUNDS  = 200
 
 
 # All Training parameters
 if SETUP == "train":
     # Training setup parameters - CHANGE FOR EVERY TRAINING
     AGENT_NAME          = "h6"
-    MODEL_NAME          = "BombCoin-Miner-1"
+    MODEL_NAME          = "BombCoin-Miner-2"
     SCENARIO            = "classic"
     OTHER_AGENTS        = ["rule_based", "rule_based", "rule_based"]
-    TRAINING_ROUNDS     = 5000
+    TRAINING_ROUNDS     = 1000
     START_TRAINING_WITH = "coin-miner1"   # "RESET" or "<model_name>"
 
     # Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
@@ -50,8 +50,8 @@ if SETUP == "train":
         EPSILON_AT_INFINITY   = 0.001
         THRESHOLD_FRACTION    = 0.33
     if EPSILON_MODE == "old":
-        EPSILON_AT_ROUND_ZERO = 0.06
-        EPSILON_AT_ROUND_LAST = 0.005
+        EPSILON_AT_ROUND_ZERO = 0.01
+        EPSILON_AT_ROUND_LAST = 0.0025
 
     # Hyperparameters for Q-update - CHANGE IF YOU WANT
     DOUBLE_Q_LEARNING = False
@@ -63,11 +63,11 @@ if SETUP == "train":
 
     # Rewards
     REWARDS = {
-        e.COIN_COLLECTED: 5,
-        e.INVALID_ACTION: -1,
-        #e.CRATE_DESTROYED: 0.5,
-        e.KILLED_OPPONENT: 100,
-        e.WAITED_TOO_LONG: -0.1,
+        e.COIN_COLLECTED: 1,
+        e.INVALID_ACTION: -0.05,
+        e.CRATE_DESTROYED: 0.05,
+        e.KILLED_OPPONENT: 5,
+        e.WAITED_TOO_LONG: -0.05,
         #e.GOT_KILLED: -1,    
     }
 
@@ -79,7 +79,7 @@ HUNTER_MODE_IDEA = True   # True or False
 if HUNTER_MODE_IDEA == False:
     FOE_TRIGGER_DISTANCE = 5
 else:
-    IDEA2_KILL_PROB = 0.008
+    IDEA2_KILL_PROB = 0.4
 
 STRIKING_DISTANCE = 3
 MAX_WAITING_TIME  = 2
