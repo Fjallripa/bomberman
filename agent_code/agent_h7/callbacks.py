@@ -31,7 +31,7 @@ if SETUP == "test":
 if SETUP == "train":
     # Training setup parameters - CHANGE FOR EVERY TRAINING
     AGENT_NAME          = "h6"
-    MODEL_NAME          = "coin-hunter1"
+    MODEL_NAME          = "coin-miner3"
     SCENARIO            = "classic"
     OTHER_AGENTS        = ["rule_based", "rule_based", "rule_based"]
     TRAINING_ROUNDS     = 500

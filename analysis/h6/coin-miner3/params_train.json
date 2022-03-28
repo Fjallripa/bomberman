@@ -1,7 +1,7 @@
 {
     "training": {
         "AGENT_NAME": "h6",
-        "MODEL_NAME": "coin-hunter1",
+        "MODEL_NAME": "coin-miner3",
         "SCENARIO": "classic",
         "OTHER_AGENTS": [
             "rule_based",
