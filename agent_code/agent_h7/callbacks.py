@@ -31,7 +31,7 @@ if SETUP == "test":
 if SETUP == "train":
     # Training setup parameters - CHANGE FOR EVERY TRAINING
     AGENT_NAME          = "h6"
-    MODEL_NAME          = "coin-hunter1"
+    MODEL_NAME          = "coin-miner3"
     SCENARIO            = "classic"
     OTHER_AGENTS        = ["rule_based", "rule_based", "rule_based"]
     TRAINING_ROUNDS     = 500
@@ -479,7 +479,7 @@ def state_to_features (self, game_state):
             hidden_coin_density = coin_density(crate_map, self.already_collected_coins, foe_count)
             expected_new_coins  = expected_coins_uncovered(crates_destroyed_map, sensible_bombing_map, hidden_coin_density)
             expected_kills      = expected_foes_killed(foe_positions, own_position)
-            expected_kill_map   = create_mask(own_position) * expected_kills * sensible_bombing_map[own_position]
+            expected_kill_map   = create_mask(own_position) * expected_kills
             best_bomb_spots     = best_bombing_spots(distance_map, expected_new_coins, expected_kill_map)
         
         goals = make_goals(best_bomb_spots, direction_map, own_position)
