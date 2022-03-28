@@ -1,4 +1,4 @@
-# Callbacks for agent_h6
+# Callbacks for agent_h7
 # ======================
 
 
@@ -31,11 +31,11 @@ if SETUP == "test":
 if SETUP == "train":
     # Training setup parameters - CHANGE FOR EVERY TRAINING
     AGENT_NAME          = "h6"
-    MODEL_NAME          = "coin-miner3"
-    SCENARIO            = "classic"
-    OTHER_AGENTS        = ["rule_based", "rule_based", "rule_based"]
-    TRAINING_ROUNDS     = 500
-    START_TRAINING_WITH = "coin-miner1"   # "RESET" or "<model_name>"
+    MODEL_NAME          = "coin-hunter2"
+    SCENARIO            = "loot-box"
+    OTHER_AGENTS        = []
+    TRAINING_ROUNDS     = 3000
+    START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
 
     # Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
     EPSILON_MODE = "old"
@@ -50,8 +50,8 @@ if SETUP == "train":
         EPSILON_AT_INFINITY   = 0.001
         THRESHOLD_FRACTION    = 0.33
     if EPSILON_MODE == "old":
-        EPSILON_AT_ROUND_ZERO = 0.01
-        EPSILON_AT_ROUND_LAST = 0.0025
+        EPSILON_AT_ROUND_ZERO = 1
+        EPSILON_AT_ROUND_LAST = 0.001
 
     # Hyperparameters for Q-update - CHANGE IF YOU WANT
     DOUBLE_Q_LEARNING = False
@@ -59,15 +59,15 @@ if SETUP == "train":
     GAMMA             = 1
     MODE              = "SARSA"   # "SARSA" or "Q-Learning"
     N                 = 5   # N-step Q-learning
-    Q_SAVE_INTERVAL   = 5
+    Q_SAVE_INTERVAL   = 100
 
     # Rewards
     REWARDS = {
         e.COIN_COLLECTED: 5,
         e.INVALID_ACTION: -1,
-        #e.CRATE_DESTROYED: 0.5,
+        e.CRATE_DESTROYED: 0.5,
         e.KILLED_OPPONENT: 100,
-        e.WAITED_TOO_LONG: -0.1,
+        #e.WAITED_TOO_LONG: -0.1,
         #e.GOT_KILLED: -1,    
     }
 
@@ -471,15 +471,18 @@ def state_to_features (self, game_state):
 
     if mode == 1:
         crates_destroyed_map = crate_destruction_map(crate_map, bombs)
+        
         sensible_bombing_map = sensible_bombing_spots(reachability_map, self.dumb_bombing_map)
         
         if HUNTER_MODE_IDEA == 0:   # Idea 0: Normal CoinMiner calculations
             best_bomb_spots = best_crate_bombing_spots(distance_map, crates_destroyed_map, sensible_bombing_map)
         else:                       # Idea 2: Include Hunter aspects into bombing spot calculation
-            hidden_coin_density = coin_density(crate_map, self.already_collected_coins, collectable_coins, foe_count)
-            expected_new_coins  = expected_coins_uncovered(crates_destroyed_map, sensible_bombing_map, hidden_coin_density)
-            expected_kills      = expected_foes_killed(foe_positions, own_position)
-            expected_kill_map   = create_mask(own_position) * expected_kills
+            coins_map           = create_mask(collectable_coins)
+            coins_uncovered_map = crate_destruction_map(coins_map)
+            coin_density_map    = coin_density(crate_map, self.already_collected_coins, foe_count) + coins_uncovered_map
+            expected_new_coins  = expected_coins_uncovered(crates_destroyed_map, sensible_bombing_map, coin_density_map)
+            expected_kills      = expected_foes_killed(foe_positions, own_position, free_spacetime_map[0])
+            expected_kill_map   = create_mask(own_position) * expected_kills * sensible_bombing_map[own_position]
             best_bomb_spots     = best_bombing_spots(distance_map, expected_new_coins, expected_kill_map)
         
         goals = make_goals(best_bomb_spots, direction_map, own_position)
@@ -495,16 +498,17 @@ def state_to_features (self, game_state):
         
         else: 
             # Hunter mode idea 3
-            local_bombing_spots = np.vstack((neighbors, np.array([own_position])))
-            local_kill_expectation = np.array([expected_foes_killed(foe_positions, (local_x, local_y)) for [local_x, local_y] in local_bombing_spots])
-            local_kill_expectation[np.append(going_is_dumb, np.array(bombing_is_dumb))] = 0
+            local_bombing_spots    = np.vstack((neighbors, np.array([own_position])))
+            local_kill_expectation = np.array([expected_foes_killed(foe_positions, (local_x, local_y), free_spacetime_map[0]) for [local_x, local_y] in local_bombing_spots])
+            local_kill_expectation[np.append(going_is_dumb, np.array(bombing_is_dumb))] \
+                                   = 0
 
             if np.all(local_kill_expectation == 0):
-                foe_neighbors = (np.array(foe_positions).reshape(foe_count, 1, 2) + np.resize(np.array(DIRECTIONS), (foe_count,4,2))).reshape(-1,2)
+                foe_neighbors         = (np.array(foe_positions).reshape(foe_count, 1, 2) + np.resize(np.array(DIRECTIONS), (foe_count,4,2))).reshape(-1,2)
                 closest_foe_neighbors = select_nearest(foe_neighbors, distance_map) # search for closest neighbors because foes unreachable
-                goals       = make_goals(closest_foe_neighbors, direction_map, own_position)
+                goals                 = make_goals(closest_foe_neighbors, direction_map, own_position)
             else:
-                goals       = local_kill_expectation == np.amax(local_kill_expectation)
+                goals                 = local_kill_expectation == np.amax(local_kill_expectation)
 
 
     # 5. Assemble feature array
@@ -721,7 +725,7 @@ def make_goals (positions, direction_wait_map, own_position):
 
 
 
-def crate_destruction_map (crate_map, bombs):
+def crate_destruction_map (crate_map, bombs = []):
     """
     """
 
@@ -766,7 +770,7 @@ def best_crate_bombing_spots (distance_map, number_of_destroyed_crates_map, sens
 
 
 
-def coin_density (crate_map, already_collected_coins, visible_coins, foe_count):
+def coin_density (crate_map, already_collected_coins, foe_count):
     if already_collected_coins == COINS and foe_count == 0:
         hidden_coin_density = 1
     else:
@@ -782,17 +786,17 @@ def coin_density (crate_map, already_collected_coins, visible_coins, foe_count):
 
 
 
-def expected_coins_uncovered (number_of_destroyed_crates_map, sensible_bombing_mask, coin_density):
+def expected_coins_uncovered (number_of_destroyed_crates_map, sensible_bombing_mask, coin_density_map):
     expected_crates_destroyed = sensible_bombing_mask * number_of_destroyed_crates_map
 
-    return coin_density * expected_crates_destroyed
+    return coin_density_map * expected_crates_destroyed
 
 
 
-def expected_foes_killed (foe_positions, own_position):
+def expected_foes_killed (foe_positions, own_position, free_space_map):
 
-    # Direct distances to all foes
     if len(foe_positions) > 0:
+        # Direct distances to all foes
         own_bomb_spread    = BOMB_MASK[own_position]
         foe_position_array = np.array(foe_positions)
         own_position_array = np.array(own_position)
@@ -801,6 +805,10 @@ def expected_foes_killed (foe_positions, own_position):
         # Which foes are affected by the explosion?
         foe_positions_tuple = tuple(foe_position_array.T)
         foes_in_explosion   = own_bomb_spread[foe_positions_tuple]  # Boolean mask
+        affected_foes       = foe_position_array[foes_in_explosion]
+
+        if len(affected_foes) > 0:
+            pass
 
         # Estimate for kill probability
         kill_probabilities = IDEA2_KILL_PROB * (4 - distances_to_me) / 3 * foes_in_explosion
@@ -812,14 +820,14 @@ def expected_foes_killed (foe_positions, own_position):
 
 
 
-def best_bombing_spots (distance_map, expected_coins, expected_kill_map):
+def best_bombing_spots (distance_map, expected_coins_map, expected_kill_map):
     
     points_for_coins = 1
     points_for_kills = 5
 
     
     time_until_next_bombing = distance_map + BOMB_COOLDOWN_TIME   # Time until next bomb can be placed
-    expected_points_map     = expected_coins * points_for_coins + expected_kill_map * points_for_kills
+    expected_points_map     = expected_coins_map * points_for_coins + expected_kill_map * points_for_kills
     point_speed_map         = expected_points_map / time_until_next_bombing
     max_point_speed         = np.amax(point_speed_map)
 

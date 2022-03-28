@@ -1,20 +1,16 @@
 {
     "training": {
         "AGENT_NAME": "h6",
-        "MODEL_NAME": "coin-hunter3",
-        "SCENARIO": "classic",
-        "OTHER_AGENTS": [
-            "rule_based",
-            "rule_based",
-            "rule_based"
-        ],
-        "TRAINING_ROUNDS": 500,
-        "START_TRAINING_WITH": "coin-hunter2"
+        "MODEL_NAME": "coin-hunter2",
+        "SCENARIO": "loot-box",
+        "OTHER_AGENTS": [],
+        "TRAINING_ROUNDS": 3000,
+        "START_TRAINING_WITH": "RESET"
     },
     "epsilon": {
         "EPSILON_MODE": "old",
-        "EPSILON_AT_ROUND_ZERO": 0.01,
-        "EPSILON_AT_ROUND_LAST": 0.0025
+        "EPSILON_AT_ROUND_ZERO": 1,
+        "EPSILON_AT_ROUND_LAST": 0.001
     },
     "Q-update": {
         "DOUBLE_Q_LEARNING": false,
@@ -22,20 +18,19 @@
         "GAMMA": 1,
         "MODE": "SARSA",
         "N": 5,
-        "Q_SAVE_INTERVAL": 5
+        "Q_SAVE_INTERVAL": 100
     },
     "agent": {
         "HUNTER_MODE_IDEA": true,
         "IDEA2_KILL_PROB": 0.2,
         "STRIKING_DISTANCE": 3,
-        "COINS": 9,
+        "COINS": 50,
         "MAX_WAITING_TIME": 2
     },
     "rewards": {
         "COIN_COLLECTED": 5,
         "INVALID_ACTION": -1,
         "CRATE_DESTROYED": 0.5,
-        "KILLED_OPPONENT": 100,
-        "WAITED_TOO_LONG": -0.5
+        "KILLED_OPPONENT": 100
     }
 }
