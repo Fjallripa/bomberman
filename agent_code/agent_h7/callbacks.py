@@ -16,15 +16,15 @@ from settings import SCENARIOS
 # Global Constants
 # ----------------
 
-SETUP = "train"   # "train" or "test"
+SETUP = "test"   # "train" or "test"
 
 # Performance Test parameters
 if SETUP == "test":
     AGENT_NAME   = "h6"
-    MODEL_NAME   = "coin-miner1"
+    MODEL_NAME   = "coin-hunter1"
     SCENARIO     = "classic"
     OTHER_AGENTS = ["rule_based", "rule_based", "rule_based"]
-    TEST_ROUNDS  = 300
+    TEST_ROUNDS  = 200
 
 
 # All Training parameters
@@ -476,7 +476,7 @@ def state_to_features (self, game_state):
         if HUNTER_MODE_IDEA == 0:   # Idea 0: Normal CoinMiner calculations
             best_bomb_spots = best_crate_bombing_spots(distance_map, crates_destroyed_map, sensible_bombing_map)
         else:                       # Idea 2: Include Hunter aspects into bombing spot calculation
-            hidden_coin_density = coin_density(crate_map, self.already_collected_coins, foe_count)
+            hidden_coin_density = coin_density(crate_map, self.already_collected_coins, collectable_coins, foe_count)
             expected_new_coins  = expected_coins_uncovered(crates_destroyed_map, sensible_bombing_map, hidden_coin_density)
             expected_kills      = expected_foes_killed(foe_positions, own_position)
             expected_kill_map   = create_mask(own_position) * expected_kills
@@ -766,7 +766,7 @@ def best_crate_bombing_spots (distance_map, number_of_destroyed_crates_map, sens
 
 
 
-def coin_density (crate_map, already_collected_coins, foe_count):
+def coin_density (crate_map, already_collected_coins, visible_coins, foe_count):
     if already_collected_coins == COINS and foe_count == 0:
         hidden_coin_density = 1
     else:
