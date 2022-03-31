@@ -1,7 +1,7 @@
 {
     "test": {
         "AGENT_NAME": "h6",
-        "MODEL_NAME": "coin-hunter2",
+        "MODEL_NAME": "BombCoin-Miner-1",
         "SCENARIO": "classic",
         "OTHER_AGENTS": [
             "rule_based",
@@ -12,7 +12,7 @@
     },
     "agent": {
         "HUNTER_MODE_IDEA": true,
-        "IDEA2_KILL_PROB": 0.075,
+        "IDEA2_KILL_PROB": 0.2,
         "STRIKING_DISTANCE": 3,
         "COINS": 9,
         "MAX_WAITING_TIME": 2
