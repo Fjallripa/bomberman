@@ -544,6 +544,7 @@ def create_mask(positions, shape = (ROWS, COLS)):
         return(array)
 
 
+
 def build_free_spacetime_map(own_position, game_field, explosion_map, bombs, foe_map):
     free_spacetime = np.resize(np.logical_and(game_field == 0, foe_map == 0), (7, ROWS, COLS)) # exclude crates, walls and foes
     free_spacetime[1][np.nonzero(explosion_map)] = False # exclude present explosions
@@ -570,7 +571,6 @@ def build_free_spacetime_map(own_position, game_field, explosion_map, bombs, foe
                               = False 
 
     return(free_spacetime)
-
 
 
 
@@ -807,8 +807,16 @@ def expected_foes_killed (foe_positions, own_position, free_space_map):
         foes_in_explosion   = own_bomb_spread[foe_positions_tuple]  # Boolean mask
         affected_foes       = foe_position_array[foes_in_explosion]
 
+        # How much free space do they have around them?
+        EXTENDED_NEIGHBORS = np.array([(0, -2), (1, -1), (2, 0), (1, 1), (0, 2), (-1, 1), (-2, 0), (-1, -1)])
         if len(affected_foes) > 0:
-            pass
+            for foe_position in affected_foes:
+                foe_neighbors_close  = foe_position + DIRECTIONS
+                foe_neighbors_far    = foe_position + EXTENDED_NEIGHBORS
+                neighbors_close_mask = create_mask(foe_neighbors_close)
+                neighbors_far_mask   = create_mask(foe_neighbors_far)
+                free_tiles_measure   = np.sum(free_space_map * (neighbors_close_mask + 0.5*neighbors_far_mask)) / 8
+                
 
         # Estimate for kill probability
         kill_probabilities = IDEA2_KILL_PROB * (4 - distances_to_me) / 3 * foes_in_explosion
