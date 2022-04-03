@@ -42,13 +42,13 @@ if SETUP == "train":
     if EPSILON_MODE == "experience":
         EPSILON_AT_START     = 1
         EPSILON_THRESHOLD    = 0.1
-        EPSILON_AT_INFINITY  = 0.01
-        THRESHOLD_EXPERIENCE = 5000
+        EPSILON_AT_INFINITY  = 0.001
+        THRESHOLD_EXPERIENCE = 367
     if EPSILON_MODE == "rounds":
         EPSILON_AT_ROUND_ZERO = 1
         EPSILON_THRESHOLD     = 0.1
         EPSILON_AT_INFINITY   = 0.001
-        THRESHOLD_FRACTION    = 0.33
+        THRESHOLD_FRACTION    = 0.33333
     if EPSILON_MODE == "old":
         EPSILON_AT_ROUND_ZERO = 1
         EPSILON_AT_ROUND_LAST = 0.001
@@ -67,7 +67,7 @@ if SETUP == "train":
         e.INVALID_ACTION: -1,
         e.CRATE_DESTROYED: 0.5,
         e.KILLED_OPPONENT: 100,
-        #e.WAITED_TOO_LONG: -0.1,
+        e.WAITED_TOO_LONG: -1,
         #e.GOT_KILLED: -1,    
     }
 
@@ -79,7 +79,7 @@ HUNTER_MODE_IDEA = True   # True or False
 if HUNTER_MODE_IDEA == False:
     FOE_TRIGGER_DISTANCE = 5
 else:
-    IDEA2_KILL_PROB = 0.2
+    IDEA2_KILL_PROB = 0.3
 
 STRIKING_DISTANCE = 3
 MAX_WAITING_TIME  = 2
@@ -181,6 +181,10 @@ def setup(self):
             params['agent']['FOE_TRIGGER_DISTANCE'] = FOE_TRIGGER_DISTANCE
         else:
             params['agent']['IDEA2_KILL_PROB']      = IDEA2_KILL_PROB
+        params['agent']['EXTRA_FEATURES']           = EXTRA_FEATURES
+        if EXTRA_FEATURES:
+            params['agent']['FREEDOM_UNIMPORTANCE'] = FREEDOM_UNIMPORTANCE
+            params['agent']['FAR_NEIGHBOR_FACTOR']  = FAR_NEIGHBOR_FACTOR
         params['agent']['STRIKING_DISTANCE']        = STRIKING_DISTANCE
         params['agent']['COINS']                    = COINS
         params['agent']['MAX_WAITING_TIME']         = MAX_WAITING_TIME
@@ -515,6 +519,11 @@ def state_to_features (self, game_state):
         else: 
             # Hunter mode idea 3
             local_bombing_spots    = np.vstack((neighbors, np.array([own_position])))
+            '''
+            local_kill_expectation = np.array([expected_foes_killed(foe_positions, (local_x, local_y), free_spacetime_map[0]) for [local_x, local_y] in local_bombing_spots])
+            local_kill_expectation[np.append(going_is_dumb, np.array(bombing_is_dumb))] \
+                                   = 0
+            '''
             dumb_spots_to_be       = np.append(going_is_dumb, np.array(bombing_is_dumb))
             free_spots_mask        = free_spacetime_map[0][tuple(local_bombing_spots.T)]
             local_kill_expectation = np.zeros(len(local_bombing_spots))
@@ -848,6 +857,7 @@ def expected_foes_killed (foe_positions, own_position, free_space_map):
                     foe_neighbors_close    = foe_position + DIRECTIONS
                     foe_neighbors_far      = foe_position + EXTENDED_NEIGHBORS
                     neighbors_close_mask   = create_mask(foe_neighbors_close)
+                    #neighbors_close_mask   = create_mask(foe_neighbors_close[inside(foe_neighbors_close)])
                     neighbors_far_mask     = create_mask(foe_neighbors_far[inside(foe_neighbors_far)])
                     foe_free_tiles         = np.sum(free_space_map * not_own_position_mask * (neighbors_close_mask + FAR_NEIGHBOR_FACTOR * neighbors_far_mask))
                     foe_notfree_measure[i] = 1 - foe_free_tiles / normalization
@@ -858,6 +868,7 @@ def expected_foes_killed (foe_positions, own_position, free_space_map):
             own_neighbors_close  = own_position + DIRECTIONS
             own_neighbors_far    = own_position + EXTENDED_NEIGHBORS
             neighbors_close_mask = create_mask(own_neighbors_close)
+            #neighbors_close_mask = create_mask(own_neighbors_close[inside(own_neighbors_close)])
             neighbors_far_mask   = create_mask(own_neighbors_far[inside(own_neighbors_far)])
             own_free_tiles       = np.sum(free_space_map * (neighbors_close_mask + FAR_NEIGHBOR_FACTOR * neighbors_far_mask))
             own_notfree_measure  = 1 - own_free_tiles / normalization

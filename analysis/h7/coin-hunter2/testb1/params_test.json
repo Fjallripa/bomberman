@@ -1,7 +1,7 @@
 {
     "test": {
         "AGENT_NAME": "h7",
-        "MODEL_NAME": "sec_agent_test",
+        "MODEL_NAME": "coin-hunter2",
         "SCENARIO": "classic",
         "OTHER_AGENTS": [
             "rule_based",
@@ -12,7 +12,7 @@
     },
     "agent": {
         "HUNTER_MODE_IDEA": true,
-        "IDEA2_KILL_PROB": 0.3,
+        "IDEA2_KILL_PROB": 0.2,
         "EXTRA_FEATURES": true,
         "FREEDOM_UNIMPORTANCE": 0.25,
         "FAR_NEIGHBOR_FACTOR": 0.5,
