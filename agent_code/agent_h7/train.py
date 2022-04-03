@@ -170,15 +170,15 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     else:
         self.rewards.append(reward)
     
-    
+    current_round      = last_game_state['round']
+
     ## Logging
-    self.logger.debug(f"eor(): Last Step {round_length}")
+    self.logger.debug(f"eor(): Round {current_round}, Last Step {round_length}")
     self.logger.debug(f'eor(): Encountered game event(s) {", ".join(map(repr, events))}')
     self.logger.debug(f'eor(): Received reward = {reward}')
 
 
     # Alernatingly updating Q_A and Q_B by collecting rewards from all encountered states and estimating their gain.
-    current_round      = last_game_state['round']
     sum_of_gain_per_Sa = np.zeros_like(self.model)
     number_of_Sa_steps = np.zeros_like(self.model, dtype = int)
 
