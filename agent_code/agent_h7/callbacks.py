@@ -84,6 +84,13 @@ else:
 STRIKING_DISTANCE = 3
 MAX_WAITING_TIME  = 2
 
+## Extra Features
+EXTRA_FEATURES = True
+if EXTRA_FEATURES:
+    EXTENDED_NEIGHBORS   = np.array([(0, -2), (1, -1), (2, 0), (1, 1), (0, 2), (-1, 1), (-2, 0), (-1, -1)])
+    FREEDOM_UNIMPORTANCE = 0.25
+    FAR_NEIGHBOR_FACTOR  = 0.5
+
 
 
 
@@ -225,6 +232,10 @@ def setup(self):
             params['agent']['FOE_TRIGGER_DISTANCE'] = FOE_TRIGGER_DISTANCE
         else:
             params['agent']['IDEA2_KILL_PROB']      = IDEA2_KILL_PROB
+        params['agent']['EXTRA_FEATURES']           = EXTRA_FEATURES
+        if EXTRA_FEATURES:
+            params['agent']['FREEDOM_UNIMPORTANCE'] = FREEDOM_UNIMPORTANCE
+            params['agent']['FAR_NEIGHBOR_FACTOR']  = FAR_NEIGHBOR_FACTOR
         params['agent']['STRIKING_DISTANCE']        = STRIKING_DISTANCE
         params['agent']['COINS']                    = COINS
         params['agent']['MAX_WAITING_TIME']         = MAX_WAITING_TIME
@@ -479,9 +490,9 @@ def state_to_features (self, game_state):
         else:                       # Idea 2: Include Hunter aspects into bombing spot calculation
             coins_map           = create_mask(collectable_coins)
             coins_uncovered_map = crate_destruction_map(coins_map)
-            coin_density_map    = coin_density(crate_map, self.already_collected_coins, foe_count) + coins_uncovered_map
+            coin_density_map    = coin_density(crate_map, self.already_collected_coins, foe_count) + EXTRA_FEATURES * coins_uncovered_map
             expected_new_coins  = expected_coins_uncovered(crates_destroyed_map, sensible_bombing_map, coin_density_map)
-            expected_kills      = expected_foes_killed(foe_positions, own_position, free_spacetime_map[0])
+            expected_kills      = expected_foes_killed(foe_positions, own_position, free_spacetime_map[1])
             expected_kill_map   = create_mask(own_position) * expected_kills * sensible_bombing_map[own_position]
             best_bomb_spots     = best_bombing_spots(distance_map, expected_new_coins, expected_kill_map)
         
@@ -499,7 +510,7 @@ def state_to_features (self, game_state):
         else: 
             # Hunter mode idea 3
             local_bombing_spots    = np.vstack((neighbors, np.array([own_position])))
-            local_kill_expectation = np.array([expected_foes_killed(foe_positions, (local_x, local_y), free_spacetime_map[0]) for [local_x, local_y] in local_bombing_spots])
+            local_kill_expectation = np.array([expected_foes_killed(foe_positions, (local_x, local_y), free_spacetime_map[1]) for [local_x, local_y] in local_bombing_spots])
             local_kill_expectation[np.append(going_is_dumb, np.array(bombing_is_dumb))] \
                                    = 0
 
@@ -534,14 +545,14 @@ def state_to_features (self, game_state):
 
 
 
-def create_mask(positions, shape = (ROWS, COLS)):
-    array = np.zeros(shape)
+def create_mask(positions, mask_shape = (ROWS, COLS)):
+    mask = np.zeros(mask_shape, dtype = bool)
     if len(positions) > 0:
-        indices        = tuple(np.array(positions).T)
-        array[indices] = True
-        return(array)
+        indices       = tuple(np.array(positions).T)
+        mask[indices] = True
+        return(mask)
     else:
-        return(array)
+        return(mask)
 
 
 
@@ -795,6 +806,8 @@ def expected_coins_uncovered (number_of_destroyed_crates_map, sensible_bombing_m
 
 def expected_foes_killed (foe_positions, own_position, free_space_map):
 
+    inside = lambda position_array: np.all(np.logical_and(position_array >= 0, position_array < COLS), axis = 1)
+
     if len(foe_positions) > 0:
         # Direct distances to all foes
         own_bomb_spread    = BOMB_MASK[own_position]
@@ -805,24 +818,48 @@ def expected_foes_killed (foe_positions, own_position, free_space_map):
         # Which foes are affected by the explosion?
         foe_positions_tuple = tuple(foe_position_array.T)
         foes_in_explosion   = own_bomb_spread[foe_positions_tuple]  # Boolean mask
-        affected_foes       = foe_position_array[foes_in_explosion]
 
-        # How much free space do they have around them?
-        EXTENDED_NEIGHBORS = np.array([(0, -2), (1, -1), (2, 0), (1, 1), (0, 2), (-1, 1), (-2, 0), (-1, -1)])
-        if len(affected_foes) > 0:
-            for foe_position in affected_foes:
-                foe_neighbors_close  = foe_position + DIRECTIONS
-                foe_neighbors_far    = foe_position + EXTENDED_NEIGHBORS
-                neighbors_close_mask = create_mask(foe_neighbors_close)
-                neighbors_far_mask   = create_mask(foe_neighbors_far)
-                free_tiles_measure   = np.sum(free_space_map * (neighbors_close_mask + 0.5*neighbors_far_mask)) / 8
-                
+        
+        if EXTRA_FEATURES:
+            normalization          = 4 + 8 * FAR_NEIGHBOR_FACTOR
+            
+            # How much free space do the foes have around them?
+            foe_notfree_measure   = np.zeros(foes_in_explosion.shape)
+            not_own_position_mask = np.logical_not(create_mask(own_position))
+            for i, foe_position in enumerate(foe_position_array):
+                if foes_in_explosion[i]:
+                    foe_neighbors_close    = foe_position + DIRECTIONS
+                    foe_neighbors_far      = foe_position + EXTENDED_NEIGHBORS
+                    neighbors_close_mask   = create_mask(foe_neighbors_close)
+                    neighbors_far_mask     = create_mask(foe_neighbors_far[inside(foe_neighbors_far)])
+                    foe_free_tiles         = np.sum(free_space_map * not_own_position_mask * (neighbors_close_mask + FAR_NEIGHBOR_FACTOR * neighbors_far_mask))
+                    foe_notfree_measure[i] = 1 - foe_free_tiles / normalization
+                else:
+                    foe_notfree_measure[i] = 0
+            print(foe_notfree_measure)
+
+            # How much free space do I have around me?
+            own_neighbors_close  = own_position + DIRECTIONS
+            own_neighbors_far    = own_position + EXTENDED_NEIGHBORS
+            neighbors_close_mask = create_mask(own_neighbors_close)
+            neighbors_far_mask   = create_mask(own_neighbors_far[inside(own_neighbors_far)])
+            own_free_tiles       = np.sum(free_space_map * (neighbors_close_mask + FAR_NEIGHBOR_FACTOR * neighbors_far_mask))
+            own_notfree_measure  = 1 - own_free_tiles / normalization
+            print(own_notfree_measure)
+
+            # How do the free space measures compare?
+            relative_freedom = (FREEDOM_UNIMPORTANCE + foe_notfree_measure) / (FREEDOM_UNIMPORTANCE + own_notfree_measure)
+            print(relative_freedom)
+        
+        else:
+            relative_freedom = 1
 
         # Estimate for kill probability
-        kill_probabilities = IDEA2_KILL_PROB * (4 - distances_to_me) / 3 * foes_in_explosion
+        kill_probabilities = IDEA2_KILL_PROB * (4 - distances_to_me) / 3 * foes_in_explosion * relative_freedom
         expected_kills     = np.sum(kill_probabilities)
+    
     else:
-        expected_kills = 0
+        expected_kills     = 0
 
     return expected_kills
 
