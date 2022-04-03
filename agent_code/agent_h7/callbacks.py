@@ -478,11 +478,16 @@ def state_to_features (self, game_state):
 
  
     # 4. Compute goal direction
+
+    waiting_is_smart = False
+
     if mode == 0:
         coins_around_me = exclude_from(collectable_coins, own_position)  # Don't have a coin goal on f5
         coins_i_reach   = select_reachable(coins_around_me, reachability_map)
         best_coins      = select_nearest(coins_i_reach, distance_map)
-        goals           = make_goals(best_coins, direction_map, own_position)
+        goals, waiting_is_smart = make_goals(best_coins, direction_wait_map, own_position)
+        if own_position in collectable_coins:
+            waiting_is_smart = True
 
     if mode == 1:
         crates_destroyed_map = crate_destruction_map(crate_map, bombs)
@@ -500,14 +505,14 @@ def state_to_features (self, game_state):
             expected_kill_map   = create_mask(own_position) * expected_kills * sensible_bombing_map[own_position]
             best_bomb_spots     = best_bombing_spots(distance_map, expected_new_coins, expected_kill_map)
         
-        goals = make_goals(best_bomb_spots, direction_map, own_position)
+        goals, waiting_is_smart = make_goals(best_bomb_spots, direction_wait_map, own_position)
         
 
     if mode == 2:
         
         if HUNTER_MODE_IDEA == 0:   # Idea 0: Go towards closest foe
             closest_foe = select_nearest(foe_positions, distance_map)
-            goals       = make_goals(closest_foe, direction_map, own_position)
+            goals, _ = make_goals(closest_foe, direction_wait_map, own_position)
             if min_foe_distance <= STRIKING_DISTANCE and not bombing_is_dumb:
                 goals[4] = True
         
@@ -527,12 +532,14 @@ def state_to_features (self, game_state):
                     local_kill_expectation[i] = expected_foes_killed(foe_positions, tuple(bombing_spot), free_spacetime_map[0])
                 else:
                     local_kill_expectation[i] = 0
-            if np.all(local_kill_expectation == 0): # If no foes nearby
+
+            if np.all(local_kill_expectation == 0): # If no foe nearby
                 foe_neighbors         = (np.array(foe_positions).reshape(foe_count, 1, 2) + np.resize(np.array(DIRECTIONS), (foe_count,4,2))).reshape(-1,2)
                 closest_foe_neighbors = select_nearest(foe_neighbors, distance_map) # search for closest neighbors because foes unreachable
-                goals                 = make_goals(closest_foe_neighbors, direction_map, own_position)
+                goals, waiting_is_smart = make_goals(closest_foe_neighbors, direction_wait_map, own_position)
+                goals[4] = False # be sure that agent doesn't try to bomb if no foe nearby
             else:
-                goals                 = local_kill_expectation == np.amax(local_kill_expectation)
+                goals = local_kill_expectation == np.amax(local_kill_expectation)
 
 
     # 5. Assemble feature array
@@ -550,6 +557,8 @@ def state_to_features (self, game_state):
         features[4] = 0
     elif goals[4]:   # own spot is a goal
         features[4] = 2
+    elif waiting_is_smart and EXTRA_FEATURES:
+        features[4] = 3
     
     # 6. Do updates for next state_to_features
     self.previous_collectable_coins = collectable_coins
@@ -736,16 +745,20 @@ def make_goals (positions, direction_wait_map, own_position):
 
     # Direction goals
     goals = np.full(5, False)
+    smart_to_wait = False
     if len(positions) > 0:
         positions_tuple  = tuple(positions.T)
         goal_directions  = direction_wait_map[positions_tuple]
-        goals[:4]        = np.any(goal_directions, axis = 0)
-        
+        goals[:4]        = np.any(goal_directions, axis = 0)[:4]
+
         # Check if there's a goal on the own_position
         goal_on_own_spot = (np.array(own_position) == positions).all(axis = 1).any()   # numpy-speak for "own_position in position"
         goals[4]         = goal_on_own_spot
-    
-    return goals
+
+        # check if waiting is smart
+        smart_to_wait = np.any(goal_directions, axis = 0)[4]
+
+    return goals, smart_to_wait
 
 
 
@@ -861,7 +874,7 @@ def expected_foes_killed (foe_positions, own_position, free_space_map):
             own_notfree_measure  = 1 - own_free_tiles / normalization
             
             # How do the free space measures compare?
-            relative_freedom = (FREEDOM_UNIMPORTANCE + foe_notfree_measure) / (FREEDOM_UNIMPORTANCE + own_notfree_measure)
+            relative_freedom = (FREEDOM_UNIMPORTANCE + foe_notfree_measure) / (FREEDOM_UNIMPORTANCE + own_notfree_measure) # * FREEDOM_UNIMPORTANCE / (FREEDOM_UNIMPORTANCE + 1)
             
         else:
             relative_freedom = 1
