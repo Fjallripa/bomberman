@@ -1,0 +1,17 @@
+# Training parameters used
+
+# Agent
+agent = m1
+model = YOUR_MODEL
+
+# Training environment
+scenario  = loot-box
+opponents = single agent
+
+# Training hyperparameters
+mode      = "Q-learning"
+n-steps   = 1
+rounds    = 100
+epsilon   = exponential, down to 0.01
+alpha     = 0.01
+gamma     = 0

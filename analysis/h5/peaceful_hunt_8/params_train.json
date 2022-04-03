@@ -1,0 +1,36 @@
+{
+    "training": {
+        "AGENT_NAME": "h5",
+        "MODEL_NAME": "peaceful_hunt_8",
+        "SCENARIO": "empty",
+        "OTHER_AGENTS": [
+            "peaceful_agent"
+        ],
+        "TRAINING_ROUNDS": 1000,
+        "START_TRAINING_WITH": "RESET"
+    },
+    "epsilon": {
+        "EPSILON_MODE": "old",
+        "EPSILON_AT_ROUND_ZERO": 0.5,
+        "EPSILON_AT_ROUND_LAST": 0.01
+    },
+    "Q-update": {
+        "ALPHA": 0.1,
+        "GAMMA": 1,
+        "MODE": "SARSA",
+        "N": 5
+    },
+    "agent": {
+        "FOE_TRIGGER_DISTANCE": 5,
+        "STRIKING_DISTANCE": 3,
+        "COINS": 0
+    },
+    "rewards": {
+        "COIN_COLLECTED": 5,
+        "INVALID_ACTION": -1,
+        "KILLED_OPPONENT": 100,
+        "LOOP": -1,
+        "WAITED_TOO_LONG": -1,
+        "KILLED_SELF": -1
+    }
+}

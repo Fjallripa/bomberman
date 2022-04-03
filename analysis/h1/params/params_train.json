@@ -1,0 +1,19 @@
+{
+    "training": {
+        "AGENT_NAME": "h1",
+        "MODEL_NAME": "params",
+        "TRAINING_ROUNDS": 200,
+        "EPSILON_AT_ROUND_ZERO": 0.5,
+        "EPSILON_AT_ROUND_LAST": 0.01
+    },
+    "Q-update": {
+        "ALPHA": 0.02,
+        "GAMMA": 1,
+        "MODE": "Q-Learning",
+        "N": 10
+    },
+    "agent": {
+        "FOE_TRIGGER_DISTANCE": 5,
+        "STRIKING_DISTANCE": 3
+    }
+}

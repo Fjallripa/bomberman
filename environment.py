@@ -9,6 +9,8 @@ from threading import Event
 from time import time
 from typing import List, Tuple, Dict
 
+from collections import deque # added
+
 import numpy as np
 
 import events as e
@@ -54,6 +56,7 @@ class GenericWorld:
         self.round_statistics = {}
 
         self.running = False
+
 
     def setup_logging(self):
         self.logger = logging.getLogger('BombeRLeWorld')
@@ -102,6 +105,9 @@ class GenericWorld:
         self.round = new_round
         self.running = True
 
+        # added
+        self.action_memory = deque(["INITIAL", "INITIAL","INITIAL", "INITIAL"], maxlen = 4)
+
     def build_arena(self) -> Tuple[np.array, List[Coin], List[Agent]]:
         raise NotImplementedError()
 
@@ -148,6 +154,21 @@ class GenericWorld:
             agent.add_event(e.WAITED)
         else:
             agent.add_event(e.INVALID_ACTION)
+
+        # added
+        self.action_memory.append(action)
+        self.logger.debug(f'paa(): action_memory = {self.action_memory}.')
+        # print(self.action_memory)
+        if self.action_memory.count("WAIT") == 5:
+            agent.add_event(e.WAITED_TOO_LONG)
+        """
+        still buggy: 
+        elif self.action_memory == deque(["UP", "DOWN", "UP", "DOWN"]) or self.action_memory == deque(["DOWN", "UP", "DOWN", "UP"]) or \
+            self.action_memory == deque(["RIGHT", "LEFT", "RIGHT", "LEFT"]) or self.action_memory == deque(["LEFT", "RIGHT", "LEFT", "RIGHT"]):
+            agent.add_event(e.LOOP)
+            # print("LOOP DETECTED")
+        """
+
 
     def poll_and_run_agents(self):
         raise NotImplementedError()
@@ -275,9 +296,11 @@ class GenericWorld:
         for a in self.agents:
             a.note_stat("score", a.score)
             a.note_stat("rounds")
-        self.round_statistics[self.round_id] = {
+        self.round_statistics[self.round_id] = {"round": self.round,
             "steps": self.step,
-            **{key: sum(a.statistics[key] for a in self.agents) for key in ["coins", "kills", "suicides"]}
+            # Custom tweak to see individual agent's performances
+            **{key: [a.statistics[key] for a in self.agents] for key in ["coins", "kills", "suicides", "got killed", "invalid"]}
+            #**{key: sum(a.statistics[key] for a in self.agents) for key in ["coins", "kills", "suicides"]}
         }
 
     def time_to_stop(self):

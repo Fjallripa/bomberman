@@ -1,0 +1,16 @@
+# Training parameters used
+
+# Agent
+agent = m1
+model = test_training_data
+
+# Training environment
+scenario  = loot-box
+opponents = single agent
+
+# Training hyperparameters
+mode      = 5-step "SARSA"
+rounds    = 1000
+epsilon   = exponential, down to 0.01
+alpha     = 0.1
+gamma     = 1

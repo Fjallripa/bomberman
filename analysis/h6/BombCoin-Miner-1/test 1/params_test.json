@@ -1,0 +1,13 @@
+{
+    "test": {
+        "AGENT_NAME": "h6",
+        "MODEL_NAME": "BombCoin-Miner-1",
+        "SCENARIO": "classic",
+        "OTHER_AGENTS": [
+            "rule_based",
+            "rule_based",
+            "rule_based"
+        ],
+        "TEST_ROUNDS": 500
+    }
+}

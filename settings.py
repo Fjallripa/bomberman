@@ -7,15 +7,37 @@ from fallbacks import pygame
 COLS = 17
 ROWS = 17
 SCENARIOS = {
+    "scrooge-mcducks-vault": {
+        "CRATE_DENSITY": 0,
+        "COIN_COUNT": 100
+    },
     "coin-heaven": {
         "CRATE_DENSITY": 0,
         "COIN_COUNT": 50
     },
+    "coin-land": {
+        "CRATE_DENSITY": 0,
+        "COIN_COUNT": 9
+    },
+    "loot-box": {
+        "CRATE_DENSITY": 0.75,
+        "COIN_COUNT": 50
+    },
+    "sparse-crates": {
+        "CRATE_DENSITY": 0.4,
+        "COIN_COUNT": 25
+    },
+    "empty": {
+        "CRATE_DENSITY": 0,
+        "COIN_COUNT": 0
+    },
+
     # This is the tournament game mode
     "classic": {
         "CRATE_DENSITY": 0.75,
         "COIN_COUNT": 9
     }
+
     # Feel free to add more game modes and properties
     # game is created in environment.py -> BombeRLeWorld -> build_arena()
 }

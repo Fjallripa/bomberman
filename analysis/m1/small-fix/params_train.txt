@@ -1,0 +1,17 @@
+# Training parameters used
+
+# Agent
+agent = m1
+model = small-fix
+
+# Training environment
+scenario  = loot-box
+opponents = single agent
+
+# Training hyperparameters
+mode      = "SARSA"
+n-steps   = 1
+rounds    = 100
+epsilon   = exponential, down to 0.01
+alpha     = 0.01
+gamma     = 0

@@ -1,0 +1,37 @@
+{
+    "training": {
+        "AGENT_NAME": "h6",
+        "MODEL_NAME": "peaceful-hunter-1",
+        "SCENARIO": "loot-box",
+        "OTHER_AGENTS": [
+            "peaceful_agent"
+        ],
+        "TRAINING_ROUNDS": 2000,
+        "START_TRAINING_WITH": "RESET"
+    },
+    "epsilon": {
+        "EPSILON_MODE": "old",
+        "EPSILON_AT_ROUND_ZERO": 1,
+        "EPSILON_AT_ROUND_LAST": 0.01
+    },
+    "Q-update": {
+        "DOUBLE_Q_LEARNING": false,
+        "ALPHA": 0.1,
+        "GAMMA": 1,
+        "MODE": "SARSA",
+        "N": 5,
+        "Q_SAVE_INTERVAL": 5
+    },
+    "agent": {
+        "HUNTER_MODE_IDEA": 1,
+        "STRIKING_DISTANCE": 3,
+        "COINS": 50,
+        "MAX_WAITING_TIME": 2
+    },
+    "rewards": {
+        "COIN_COLLECTED": 5,
+        "INVALID_ACTION": -1,
+        "CRATE_DESTROYED": 0.5,
+        "KILLED_OPPONENT": 100
+    }
+}

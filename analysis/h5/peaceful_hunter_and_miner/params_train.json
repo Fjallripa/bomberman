@@ -1,0 +1,35 @@
+{
+    "training": {
+        "AGENT_NAME": "h5",
+        "MODEL_NAME": "peaceful_hunter_and_miner",
+        "SCENARIO": "coin-heaven",
+        "OTHER_AGENTS": [
+            "peaceful_agent"
+        ],
+        "TRAINING_ROUNDS": 500,
+        "START_TRAINING_WITH": "RESET"
+    },
+    "epsilon": {
+        "EPSILON_MODE": "old",
+        "EPSILON_AT_ROUND_ZERO": 1,
+        "EPSILON_AT_ROUND_LAST": 0.01
+    },
+    "Q-update": {
+        "ALPHA": 0.1,
+        "GAMMA": 0.99,
+        "MODE": "SARSA",
+        "N": 5
+    },
+    "agent": {
+        "FOE_TRIGGER_DISTANCE": 5,
+        "STRIKING_DISTANCE": 3,
+        "COINS": 50
+    },
+    "rewards": {
+        "COIN_COLLECTED": 5,
+        "INVALID_ACTION": -1,
+        "KILLED_OPPONENT": 100,
+        "WAITED_TOO_LONG": -0.1,
+        "KILLED_SELF": -0.01
+    }
+}

@@ -1,0 +1,16 @@
+# Training parameters used
+
+# Agent
+agent = m1
+model = 10k-no-gamma
+
+# Training environment
+scenario  = loot-box
+opponents = single agent
+
+# Training hyperparameters
+mode      = 1-step "SARSA"
+rounds    = 10_000
+epsilon   = exponential, down to 0.01
+alpha     = 0.01
+gamma     = 0

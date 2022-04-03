@@ -37,7 +37,8 @@ EVENT_STAT_MAP = {
     e.MOVED_RIGHT: 'moves',
     e.MOVED_UP: 'moves',
     e.MOVED_DOWN: 'moves',
-    e.INVALID_ACTION: 'invalid'
+    e.INVALID_ACTION: 'invalid',
+    e.GOT_KILLED: 'got killed',
 }
 
 
