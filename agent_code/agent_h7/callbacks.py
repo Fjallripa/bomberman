@@ -841,22 +841,18 @@ def expected_foes_killed (foe_positions, own_position, free_space_map):
                     foe_notfree_measure[i] = 1 - foe_free_tiles / normalization
                 else:
                     foe_notfree_measure[i] = 0
-            print(foe_notfree_measure)
-
+            
             # How much free space do I have around me?
             own_neighbors_close  = own_position + DIRECTIONS
-            print(own_neighbors_close)
             own_neighbors_far    = own_position + EXTENDED_NEIGHBORS
             neighbors_close_mask = create_mask(own_neighbors_close)
             neighbors_far_mask   = create_mask(own_neighbors_far[inside(own_neighbors_far)])
             own_free_tiles       = np.sum(free_space_map * (neighbors_close_mask + FAR_NEIGHBOR_FACTOR * neighbors_far_mask))
             own_notfree_measure  = 1 - own_free_tiles / normalization
-            print(own_notfree_measure)
-
+            
             # How do the free space measures compare?
             relative_freedom = (FREEDOM_UNIMPORTANCE + foe_notfree_measure) / (FREEDOM_UNIMPORTANCE + own_notfree_measure)
-            print(relative_freedom)
-        
+            
         else:
             relative_freedom = 1
 
