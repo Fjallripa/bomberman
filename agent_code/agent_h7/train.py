@@ -22,7 +22,7 @@ from .callbacks import random_argmax
 
 # Q-model constants 
 state_count_axis_1 = 15   # number of possible feature states for first / second Q axis, currently 15 considering order-invariance
-state_count_axis_2 = 3    # OWN POSITION
+state_count_axis_2 = 4    # OWN POSITION
 action_count       = 6    # len(ACTIONS)
 
 # Training analysis files
