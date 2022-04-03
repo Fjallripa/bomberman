@@ -21,7 +21,7 @@ SETUP = "test"   # "train" or "test"
 # Performance Test parameters
 if SETUP == "test":
     AGENT_NAME   = "h6"
-    MODEL_NAME   = "coin-hunter1"
+    MODEL_NAME   = "coin-hunter2"
     SCENARIO     = "classic"
     OTHER_AGENTS = ["rule_based", "rule_based", "rule_based"]
     TEST_ROUNDS  = 200
@@ -492,7 +492,7 @@ def state_to_features (self, game_state):
             coins_uncovered_map = crate_destruction_map(coins_map)
             coin_density_map    = coin_density(crate_map, self.already_collected_coins, foe_count) + EXTRA_FEATURES * coins_uncovered_map
             expected_new_coins  = expected_coins_uncovered(crates_destroyed_map, sensible_bombing_map, coin_density_map)
-            expected_kills      = expected_foes_killed(foe_positions, own_position, free_spacetime_map[1])
+            expected_kills      = expected_foes_killed(foe_positions, own_position, free_spacetime_map[0])
             expected_kill_map   = create_mask(own_position) * expected_kills * sensible_bombing_map[own_position]
             best_bomb_spots     = best_bombing_spots(distance_map, expected_new_coins, expected_kill_map)
         
@@ -510,11 +510,16 @@ def state_to_features (self, game_state):
         else: 
             # Hunter mode idea 3
             local_bombing_spots    = np.vstack((neighbors, np.array([own_position])))
-            local_kill_expectation = np.array([expected_foes_killed(foe_positions, (local_x, local_y), free_spacetime_map[1]) for [local_x, local_y] in local_bombing_spots])
-            local_kill_expectation[np.append(going_is_dumb, np.array(bombing_is_dumb))] \
-                                   = 0
+            dumb_spots_to_be       = np.append(going_is_dumb, np.array(bombing_is_dumb))
+            free_spots_mask        = free_spacetime_map[0][tuple(local_bombing_spots.T)]
+            local_kill_expectation = np.zeros(len(local_bombing_spots))
+            for i, bombing_spot in enumerate(local_bombing_spots):
+                if free_spots_mask[i] and not dumb_spots_to_be[i]:
+                    local_kill_expectation[i] = expected_foes_killed(foe_positions, tuple(bombing_spot), free_spacetime_map[0])
+                else:
+                    local_kill_expectation[i] = 0
 
-            if np.all(local_kill_expectation == 0):
+            if np.all(local_kill_expectation == 0): # If no foes nearby
                 foe_neighbors         = (np.array(foe_positions).reshape(foe_count, 1, 2) + np.resize(np.array(DIRECTIONS), (foe_count,4,2))).reshape(-1,2)
                 closest_foe_neighbors = select_nearest(foe_neighbors, distance_map) # search for closest neighbors because foes unreachable
                 goals                 = make_goals(closest_foe_neighbors, direction_map, own_position)
@@ -840,6 +845,7 @@ def expected_foes_killed (foe_positions, own_position, free_space_map):
 
             # How much free space do I have around me?
             own_neighbors_close  = own_position + DIRECTIONS
+            print(own_neighbors_close)
             own_neighbors_far    = own_position + EXTENDED_NEIGHBORS
             neighbors_close_mask = create_mask(own_neighbors_close)
             neighbors_far_mask   = create_mask(own_neighbors_far[inside(own_neighbors_far)])
