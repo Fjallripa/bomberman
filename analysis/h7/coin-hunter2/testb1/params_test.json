@@ -12,7 +12,7 @@
     },
     "agent": {
         "HUNTER_MODE_IDEA": true,
-        "IDEA2_KILL_PROB": 0.3,
+        "IDEA2_KILL_PROB": 0.2,
         "EXTRA_FEATURES": true,
         "FREEDOM_UNIMPORTANCE": 0.25,
         "FAR_NEIGHBOR_FACTOR": 0.5,

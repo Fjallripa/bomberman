@@ -1,6 +1,6 @@
 {
     "test": {
-        "AGENT_NAME": "h7",
+        "AGENT_NAME": "h6",
         "MODEL_NAME": "coin-hunter2",
         "SCENARIO": "classic",
         "OTHER_AGENTS": [
@@ -12,10 +12,7 @@
     },
     "agent": {
         "HUNTER_MODE_IDEA": true,
-        "IDEA2_KILL_PROB": 0.3,
-        "EXTRA_FEATURES": true,
-        "FREEDOM_UNIMPORTANCE": 0.25,
-        "FAR_NEIGHBOR_FACTOR": 0.5,
+        "IDEA2_KILL_PROB": 0.2,
         "STRIKING_DISTANCE": 3,
         "COINS": 9,
         "MAX_WAITING_TIME": 2
