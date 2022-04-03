@@ -73,7 +73,7 @@ if SETUP == "train":
 
 
 # Hyperparameters for agent behavior - CHANGE IF YOU WANT
-## Hunter Mode Idea 0
+## Hunter Mode Idea
 HUNTER_MODE_IDEA = True   # True or False
 
 if HUNTER_MODE_IDEA == False:
