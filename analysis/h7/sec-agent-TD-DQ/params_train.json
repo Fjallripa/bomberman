@@ -1,7 +1,7 @@
 {
     "training": {
         "AGENT_NAME": "h7",
-        "MODEL_NAME": "sec-agent-TD-DQ_2",
+        "MODEL_NAME": "sec-agent-TD-DQ",
         "SCENARIO": "loot-box",
         "OTHER_AGENTS": [],
         "TRAINING_ROUNDS": 3000,
@@ -34,6 +34,7 @@
         "COIN_COLLECTED": 5,
         "INVALID_ACTION": -1,
         "CRATE_DESTROYED": 0.5,
-        "KILLED_OPPONENT": 100
+        "KILLED_OPPONENT": 100,
+        "WAITED_TOO_LONG": -1
     }
 }

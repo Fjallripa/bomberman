@@ -16,22 +16,22 @@ from settings import SCENARIOS
 # Global Constants
 # ----------------
 
-SETUP = "test"   # "train" or "test"
+SETUP = "train"   # "train" or "test"
 
 # Performance Test parameters
 if SETUP == "test":
-    AGENT_NAME   = "h6"
-    MODEL_NAME   = "coin-hunter2"
+    AGENT_NAME   = "h7"
+    MODEL_NAME   = ""
     SCENARIO     = "classic"
     OTHER_AGENTS = ["rule_based", "rule_based", "rule_based"]
-    TEST_ROUNDS  = 200
+    TEST_ROUNDS  = 300
 
 
 # All Training parameters
 if SETUP == "train":
     # Training setup parameters - CHANGE FOR EVERY TRAINING
-    AGENT_NAME          = "h6"
-    MODEL_NAME          = "coin-hunter2"
+    AGENT_NAME          = "h7"
+    MODEL_NAME          = "sec-agent-TD-DQ_2"
     SCENARIO            = "loot-box"
     OTHER_AGENTS        = []
     TRAINING_ROUNDS     = 3000
@@ -42,8 +42,8 @@ if SETUP == "train":
     if EPSILON_MODE == "experience":
         EPSILON_AT_START     = 1
         EPSILON_THRESHOLD    = 0.1
-        EPSILON_AT_INFINITY  = 0.001
-        THRESHOLD_EXPERIENCE = 367
+        EPSILON_AT_INFINITY  = 0
+        THRESHOLD_EXPERIENCE = 123
     if EPSILON_MODE == "rounds":
         EPSILON_AT_ROUND_ZERO = 1
         EPSILON_THRESHOLD     = 0.1
@@ -54,10 +54,10 @@ if SETUP == "train":
         EPSILON_AT_ROUND_LAST = 0.001
 
     # Hyperparameters for Q-update - CHANGE IF YOU WANT
-    DOUBLE_Q_LEARNING = False
+    DOUBLE_Q_LEARNING = True
     ALPHA             = 0.1
     GAMMA             = 1
-    MODE              = "SARSA"   # "SARSA" or "Q-Learning"
+    MODE              = "Q-Learning"   # "SARSA" or "Q-Learning"
     N                 = 5   # N-step Q-learning
     Q_SAVE_INTERVAL   = 100
 
@@ -67,7 +67,7 @@ if SETUP == "train":
         e.INVALID_ACTION: -1,
         e.CRATE_DESTROYED: 0.5,
         e.KILLED_OPPONENT: 100,
-        e.WAITED_TOO_LONG: -1,
+        #e.WAITED_TOO_LONG: -1,
         #e.GOT_KILLED: -1,    
     }
 
@@ -79,7 +79,7 @@ HUNTER_MODE_IDEA = True   # True or False
 if HUNTER_MODE_IDEA == False:
     FOE_TRIGGER_DISTANCE = 5
 else:
-    IDEA2_KILL_PROB = 0.3
+    IDEA2_KILL_PROB = 0.2
 
 STRIKING_DISTANCE = 3
 MAX_WAITING_TIME  = 2
@@ -89,7 +89,7 @@ EXTRA_FEATURES = True
 if EXTRA_FEATURES:
     EXTENDED_NEIGHBORS   = np.array([(0, -2), (1, -1), (2, 0), (1, 1), (0, 2), (-1, 1), (-2, 0), (-1, -1)])
     FREEDOM_UNIMPORTANCE = 0.25
-    FAR_NEIGHBOR_FACTOR  = 0.5
+    FAR_NEIGHBOR_FACTOR  = 0
 
 
 

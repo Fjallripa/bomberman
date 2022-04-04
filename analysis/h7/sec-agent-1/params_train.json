@@ -1,7 +1,7 @@
 {
     "training": {
         "AGENT_NAME": "h7",
-        "MODEL_NAME": "sec-agent-TD-DQ_2",
+        "MODEL_NAME": "sec-agent-1",
         "SCENARIO": "loot-box",
         "OTHER_AGENTS": [],
         "TRAINING_ROUNDS": 3000,
@@ -13,10 +13,10 @@
         "EPSILON_AT_ROUND_LAST": 0.001
     },
     "Q-update": {
-        "DOUBLE_Q_LEARNING": true,
+        "DOUBLE_Q_LEARNING": false,
         "ALPHA": 0.1,
         "GAMMA": 1,
-        "MODE": "Q-Learning",
+        "MODE": "SARSA",
         "N": 5,
         "Q_SAVE_INTERVAL": 100
     },

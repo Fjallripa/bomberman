@@ -1,14 +1,14 @@
 {
     "test": {
         "AGENT_NAME": "h7",
-        "MODEL_NAME": "sec_agent_test",
+        "MODEL_NAME": "sec-agent-1",
         "SCENARIO": "classic",
         "OTHER_AGENTS": [
             "rule_based",
             "rule_based",
             "rule_based"
         ],
-        "TEST_ROUNDS": 300
+        "TEST_ROUNDS": 200
     },
     "agent": {
         "HUNTER_MODE_IDEA": true,
