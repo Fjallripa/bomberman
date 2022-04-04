@@ -24,7 +24,7 @@ if SETUP == "test":
     MODEL_NAME   = "coin-hunter2"
     SCENARIO     = "classic"
     OTHER_AGENTS = ["rule_based", "rule_based", "rule_based"]
-    TEST_ROUNDS  = 300
+    TEST_ROUNDS  = 9000
 
 
 # All Training parameters

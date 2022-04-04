@@ -16,38 +16,38 @@ from settings import SCENARIOS
 # Global Constants
 # ----------------
 
-SETUP = "test"   # "train" or "test"
+SETUP = "train"   # "train" or "test"
 
 # Performance Test parameters
 if SETUP == "test":
-    AGENT_NAME   = "h6"
+    AGENT_NAME   = "h7"
     MODEL_NAME   = "coin-hunter2"
     SCENARIO     = "classic"
     OTHER_AGENTS = ["rule_based", "rule_based", "rule_based"]
-    TEST_ROUNDS  = 200
+    TEST_ROUNDS  = 300
 
 
 # All Training parameters
 if SETUP == "train":
     # Training setup parameters - CHANGE FOR EVERY TRAINING
-    AGENT_NAME          = "h6"
-    MODEL_NAME          = "coin-hunter2"
+    AGENT_NAME          = "h7"
+    MODEL_NAME          = "double-experience"
     SCENARIO            = "loot-box"
     OTHER_AGENTS        = []
     TRAINING_ROUNDS     = 3000
     START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
 
     # Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
-    EPSILON_MODE = "old"
+    EPSILON_MODE = "experience"
     if EPSILON_MODE == "experience":
         EPSILON_AT_START     = 1
         EPSILON_THRESHOLD    = 0.1
-        EPSILON_AT_INFINITY  = 0.001
-        THRESHOLD_EXPERIENCE = 367
+        EPSILON_AT_INFINITY  = 0
+        THRESHOLD_EXPERIENCE = 123
     if EPSILON_MODE == "rounds":
         EPSILON_AT_ROUND_ZERO = 1
         EPSILON_THRESHOLD     = 0.1
-        EPSILON_AT_INFINITY   = 0.001
+        EPSILON_AT_INFINITY   = 0
         THRESHOLD_FRACTION    = 0.33333
     if EPSILON_MODE == "old":
         EPSILON_AT_ROUND_ZERO = 1
