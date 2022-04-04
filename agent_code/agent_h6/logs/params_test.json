@@ -8,7 +8,7 @@
             "rule_based",
             "rule_based"
         ],
-        "TEST_ROUNDS": 300
+        "TEST_ROUNDS": 9000
     },
     "agent": {
         "HUNTER_MODE_IDEA": true,

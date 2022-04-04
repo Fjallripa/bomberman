@@ -646,7 +646,7 @@ def proximity_map (own_position, free_spacetime_map, explosion_map, bombs):
     distance_time_map  = np.full((7, ROWS, COLS), DEFAULT_DISTANCE)
     direction_map = np.full((7, ROWS, COLS, 5), False) # UP, RIGHT, DOWN, LEFT, WAIT
     x_own, y_own = own_position
-
+    
     distance_time_map[0, x_own, y_own] = 0
     direction_map[0, x_own, y_own][4] = free_spacetime_map[1, x_own, y_own]
     for i, step in enumerate([(0, -1), (1, 0), (0, 1), (-1, 0)]):

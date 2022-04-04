@@ -8,9 +8,11 @@
         "START_TRAINING_WITH": "RESET"
     },
     "epsilon": {
-        "EPSILON_MODE": "old",
-        "EPSILON_AT_ROUND_ZERO": 1,
-        "EPSILON_AT_ROUND_LAST": 0.001
+        "EPSILON_MODE": "experience",
+        "EPSILON_AT_START": 1,
+        "EPSILON_THRESHOLD": 0.1,
+        "EPSILON_AT_INFINITY": 0,
+        "THRESHOLD_EXPERIENCE": 123
     },
     "Q-update": {
         "DOUBLE_Q_LEARNING": true,
@@ -22,10 +24,10 @@
     },
     "agent": {
         "HUNTER_MODE_IDEA": true,
-        "IDEA2_KILL_PROB": 0.2,
+        "IDEA2_KILL_PROB": 0.3,
         "EXTRA_FEATURES": true,
         "FREEDOM_UNIMPORTANCE": 0.25,
-        "FAR_NEIGHBOR_FACTOR": 0,
+        "FAR_NEIGHBOR_FACTOR": 0.5,
         "STRIKING_DISTANCE": 3,
         "COINS": 50,
         "MAX_WAITING_TIME": 2
@@ -34,6 +36,7 @@
         "COIN_COLLECTED": 5,
         "INVALID_ACTION": -1,
         "CRATE_DESTROYED": 0.5,
-        "KILLED_OPPONENT": 100
+        "KILLED_OPPONENT": 100,
+        "WAITED_TOO_LONG": -1
     }
 }
