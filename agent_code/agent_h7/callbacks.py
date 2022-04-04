@@ -31,7 +31,7 @@ if SETUP == "test":
 if SETUP == "train":
     # Training setup parameters - CHANGE FOR EVERY TRAINING
     AGENT_NAME          = "h7"
-    MODEL_NAME          = "sec-agent-all_15"
+    MODEL_NAME          = "double-experience-long"
     SCENARIO            = "loot-box"
     OTHER_AGENTS        = []
     TRAINING_ROUNDS     = 3000
@@ -43,7 +43,7 @@ if SETUP == "train":
         EPSILON_AT_START     = 1
         EPSILON_THRESHOLD    = 0.1
         EPSILON_AT_INFINITY  = 0
-        THRESHOLD_EXPERIENCE = 1000
+        THRESHOLD_EXPERIENCE = 5303
     if EPSILON_MODE == "rounds":
         EPSILON_AT_ROUND_ZERO = 1
         EPSILON_THRESHOLD     = 0.1
