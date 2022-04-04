@@ -1,7 +1,7 @@
 {
     "training": {
         "AGENT_NAME": "h7",
-        "MODEL_NAME": "sec-agent-all_15",
+        "MODEL_NAME": "sec-agent-all",
         "SCENARIO": "loot-box",
         "OTHER_AGENTS": [],
         "TRAINING_ROUNDS": 3000,
@@ -12,14 +12,14 @@
         "EPSILON_AT_START": 1,
         "EPSILON_THRESHOLD": 0.1,
         "EPSILON_AT_INFINITY": 0,
-        "THRESHOLD_EXPERIENCE": 1000
+        "THRESHOLD_EXPERIENCE": 123
     },
     "Q-update": {
         "DOUBLE_Q_LEARNING": true,
         "ALPHA": 0.1,
         "GAMMA": 1,
         "MODE": "Q-Learning",
-        "N": 15,
+        "N": 5,
         "Q_SAVE_INTERVAL": 100
     },
     "agent": {

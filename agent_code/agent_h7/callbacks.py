@@ -31,19 +31,19 @@ if SETUP == "test":
 if SETUP == "train":
     # Training setup parameters - CHANGE FOR EVERY TRAINING
     AGENT_NAME          = "h7"
-    MODEL_NAME          = "sec-agent-TD-DQ_2"
+    MODEL_NAME          = "sec-agent-all_15"
     SCENARIO            = "loot-box"
     OTHER_AGENTS        = []
     TRAINING_ROUNDS     = 3000
     START_TRAINING_WITH = "RESET"   # "RESET" or "<model_name>"
 
     # Hyperparameters for epsilon-annealing - CHANGE IF YOU WANT
-    EPSILON_MODE = "old"
+    EPSILON_MODE = "experience"
     if EPSILON_MODE == "experience":
         EPSILON_AT_START     = 1
         EPSILON_THRESHOLD    = 0.1
         EPSILON_AT_INFINITY  = 0
-        THRESHOLD_EXPERIENCE = 123
+        THRESHOLD_EXPERIENCE = 1000
     if EPSILON_MODE == "rounds":
         EPSILON_AT_ROUND_ZERO = 1
         EPSILON_THRESHOLD     = 0.1
@@ -58,7 +58,7 @@ if SETUP == "train":
     ALPHA             = 0.1
     GAMMA             = 1
     MODE              = "Q-Learning"   # "SARSA" or "Q-Learning"
-    N                 = 5   # N-step Q-learning
+    N                 = 15  # N-step Q-learning
     Q_SAVE_INTERVAL   = 100
 
     # Rewards
@@ -646,7 +646,7 @@ def proximity_map (own_position, free_spacetime_map, explosion_map, bombs):
     distance_time_map  = np.full((7, ROWS, COLS), DEFAULT_DISTANCE)
     direction_map = np.full((7, ROWS, COLS, 5), False) # UP, RIGHT, DOWN, LEFT, WAIT
     x_own, y_own = own_position
-    
+
     distance_time_map[0, x_own, y_own] = 0
     direction_map[0, x_own, y_own][4] = free_spacetime_map[1, x_own, y_own]
     for i, step in enumerate([(0, -1), (1, 0), (0, 1), (-1, 0)]):
